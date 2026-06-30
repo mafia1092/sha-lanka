@@ -74,47 +74,48 @@
     var yearEl = document.getElementById('year');
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-    /* ---- Contact form (Web3Forms) ---- */
+    /* ---- Contact form -> WhatsApp ---- */
     var form = document.getElementById('contact-form');
     var status = document.getElementById('form-status');
+    var WA_NUMBER = '94777488746'; // Sha Lanka Travels WhatsApp (country code + number, no + or spaces)
 
     if (form) {
       form.addEventListener('submit', function (e) {
         e.preventDefault();
 
-        var key = form.querySelector('input[name="access_key"]').value;
-        if (!key || key === 'YOUR_WEB3FORMS_ACCESS_KEY') {
-          showStatus('Form not configured yet — add your free Web3Forms access key to enable sending.', 'warn');
+        // Let the browser enforce required fields (name, email, message) first.
+        if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
           return;
         }
 
-        var btn = form.querySelector('button[type="submit"]');
-        var original = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = 'Sending...';
+        function val(name) {
+          var el = form.querySelector('[name="' + name + '"]');
+          return el ? String(el.value).trim() : '';
+        }
 
-        var data = new FormData(form);
-        fetch('https://api.web3forms.com/submit', {
-          method: 'POST',
-          headers: { 'Accept': 'application/json' },
-          body: data
-        })
-          .then(function (r) { return r.json(); })
-          .then(function (json) {
-            if (json.success) {
-              showStatus("Thank you! Your enquiry has been sent — we'll be in touch shortly.", 'ok');
-              form.reset();
-            } else {
-              showStatus(json.message || 'Something went wrong. Please try again or contact us directly.', 'err');
-            }
-          })
-          .catch(function () {
-            showStatus('Network error. Please try again or reach us on WhatsApp.', 'err');
-          })
-          .finally(function () {
-            btn.disabled = false;
-            btn.textContent = original;
-          });
+        var name    = val('name');
+        var email   = val('email');
+        var phone   = val('phone');
+        var choice  = val('choice');
+        var message = val('message');
+
+        var lines = [
+          'Hello Sha Lanka Travels! I would like to make an enquiry.',
+          '',
+          'Name: ' + name,
+          'Email: ' + email
+        ];
+        if (phone)  { lines.push('Phone: ' + phone); }
+        if (choice) { lines.push('Interested in: ' + choice); }
+        lines.push('');
+        lines.push('Message:');
+        lines.push(message);
+
+        var waUrl = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n'));
+
+        // Opens WhatsApp Web on desktop or the WhatsApp app on mobile.
+        window.open(waUrl, '_blank', 'noopener');
+        showStatus("Opening WhatsApp with your details prefilled — just tap Send in the chat to reach us.", 'ok');
       });
     }
 
