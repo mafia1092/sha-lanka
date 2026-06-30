@@ -17,3 +17,8 @@ node_modules/
 
 # Local Claude Code tooling (preview config, local settings)
 .claude/
+
+# Source/originals & temp image-processing artifacts (not needed by the live site)
+logo/
+.tmp_thumbs/
+*.tmp
