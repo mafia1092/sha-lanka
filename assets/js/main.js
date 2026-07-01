@@ -16,60 +16,78 @@
       GLightbox({ selector: '.glightbox', touchNavigation: true, loop: true });
     }
 
-    /* ---- Card slideshows (instant switch every 5s) ---- */
+    /* ---- Card slideshows (horizontal sliding carousel, advances every 5s) ---- */
     document.querySelectorAll('[data-slideshow]').forEach(function (show, n) {
-      var slides = show.querySelectorAll('.slide');
+      var slides = Array.prototype.slice.call(show.querySelectorAll('.slide'));
       if (slides.length < 2) return;
+      // Wrap the slides in a flex track and append a clone of the first for a seamless loop
+      var track = document.createElement('div');
+      track.className = 'slides-track';
+      slides.forEach(function (s) { s.classList.remove('is-active'); track.appendChild(s); });
+      var clone = slides[0].cloneNode(true);
+      clone.setAttribute('aria-hidden', 'true');
+      track.appendChild(clone);
+      show.appendChild(track);
+
+      var total = slides.length;
       var i = 0;
-      // small per-card offset so the cards don't all switch at the same instant
-      setTimeout(function () {
-        setInterval(function () {
-          slides[i].classList.remove('is-active');
-          i = (i + 1) % slides.length;
-          slides[i].classList.add('is-active');
-        }, 5000);
-      }, n * 600);
+      var advance = function () {
+        i++;
+        track.style.transition = 'transform .7s cubic-bezier(.4, 0, .2, 1)';
+        track.style.transform = 'translateX(' + (-i * 100) + '%)';
+        if (i === total) {
+          // reached the clone (== first slide) — snap back to the real first, invisibly
+          setTimeout(function () {
+            track.style.transition = 'none';
+            i = 0;
+            track.style.transform = 'translateX(0)';
+          }, 720);
+        }
+      };
+      // small per-card offset so the cards don't all advance at the same instant
+      setTimeout(function () { setInterval(advance, 5000); }, n * 700);
     });
 
-    /* ---- Gallery: featured auto pop-up (random, 3s) + swapping thumbnail wall ---- */
-    var gMain = document.getElementById('gf-main');
-    var gBg = document.getElementById('gf-bg');
-    var gThumbsWrap = document.getElementById('gallery-thumbs');
-    if (gMain && gThumbsWrap) {
+    /* ---- Gallery wall: random spotlight pop-up (3s) + tiles swap over time ---- */
+    var gWall = document.getElementById('gallery-wall');
+    if (gWall) {
       var GAL_N = 45;
       var pad = function (n) { return (n < 10 ? '0' : '') + n; };
       var thumbUrl = function (n) { return 'assets/img/gallery/g' + pad(n) + '.jpg'; };
       var largeUrl = function (n) { return 'assets/img/gallery/g' + pad(n) + '-lg.jpg'; };
       var rint = function (n) { return Math.floor(Math.random() * n); };
 
-      var gThumbs = Array.prototype.slice.call(gThumbsWrap.querySelectorAll('.gthumb'));
+      var gTiles = Array.prototype.slice.call(gWall.querySelectorAll('.gtile'));
       var used = {};
-      gThumbs.forEach(function (t) { used[+t.dataset.n] = true; });
-      var featuredN = +(gMain.dataset.n || 1);
-      used[featuredN] = true;
+      gTiles.forEach(function (t) { used[+t.dataset.n] = true; });
 
       var freePhoto = function () {
         var n, guard = 0;
         do { n = 1 + rint(GAL_N); guard++; } while (used[n] && guard < 300);
         return n;
       };
-      var setFeatured = function (n) {
-        used[featuredN] = false; featuredN = n; used[n] = true;
-        gMain.style.opacity = '0';
-        setTimeout(function () {
-          gMain.src = largeUrl(n); if (gBg) gBg.src = largeUrl(n);
-          gMain.dataset.n = n; gMain.style.opacity = '1';
-        }, 200);
+
+      // Random spotlight: one tile enlarges (swapped to original size) for 3s, then another
+      var lastPop = -1;
+      var spotlight = function () {
+        if (lastPop > -1) {
+          var p = gTiles[lastPop];
+          p.classList.remove('pop');
+          p.querySelector('img').src = thumbUrl(+p.dataset.n);
+        }
+        var k = rint(gTiles.length);
+        while (k === lastPop) k = rint(gTiles.length);
+        var t = gTiles[k];
+        t.querySelector('img').src = largeUrl(+t.dataset.n);
+        t.classList.add('pop');
+        lastPop = k;
       };
 
-      var galTimer = null;
-      var startAuto = function () {
-        galTimer = setInterval(function () { setFeatured(freePhoto()); }, 3000);
-      };
-
-      // Thumbnails quietly swap to fresh photos so all 45 rotate through the wall
+      // Tiles quietly swap to fresh photos so all 45 rotate through the wall
       var swapTimer = setInterval(function () {
-        var t = gThumbs[rint(gThumbs.length)];
+        var idx = rint(gTiles.length);
+        if (idx === lastPop) return;
+        var t = gTiles[idx];
         var oldN = +t.dataset.n, nn = freePhoto();
         used[oldN] = false; used[nn] = true;
         var im = t.querySelector('img');
@@ -77,24 +95,17 @@
         setTimeout(function () { im.src = thumbUrl(nn); t.dataset.n = nn; im.style.opacity = '1'; }, 250);
       }, 4500);
 
-      // Click a thumbnail -> show it big in the featured panel, then keep auto-playing
-      gThumbs.forEach(function (t) {
+      // Click a tile -> open it full-screen (original size) in the lightbox
+      gTiles.forEach(function (t) {
         t.addEventListener('click', function () {
-          setFeatured(+t.dataset.n);
-          if (galTimer) { clearInterval(galTimer); startAuto(); }
+          if (window.GLightbox) {
+            GLightbox({ elements: [{ href: largeUrl(+t.dataset.n), type: 'image' }] }).open();
+          }
         });
       });
 
-      // Click the featured photo -> open it full-screen (original size) in the lightbox
-      var gFig = document.getElementById('gallery-featured');
-      if (gFig && window.GLightbox) {
-        gFig.addEventListener('click', function () {
-          GLightbox({ elements: [{ href: largeUrl(featuredN), type: 'image' }] }).open();
-        });
-      }
-
       var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (reduce) { clearInterval(swapTimer); } else { startAuto(); }
+      if (reduce) { clearInterval(swapTimer); } else { spotlight(); setInterval(spotlight, 3000); }
     }
 
     /* ---- Sticky header state ---- */
