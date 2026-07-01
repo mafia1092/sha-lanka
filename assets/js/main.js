@@ -16,6 +16,21 @@
       GLightbox({ selector: '.glightbox', touchNavigation: true, loop: true });
     }
 
+    /* ---- Card slideshows (instant switch every 5s) ---- */
+    document.querySelectorAll('[data-slideshow]').forEach(function (show, n) {
+      var slides = show.querySelectorAll('.slide');
+      if (slides.length < 2) return;
+      var i = 0;
+      // small per-card offset so the cards don't all switch at the same instant
+      setTimeout(function () {
+        setInterval(function () {
+          slides[i].classList.remove('is-active');
+          i = (i + 1) % slides.length;
+          slides[i].classList.add('is-active');
+        }, 5000);
+      }, n * 600);
+    });
+
     /* ---- Sticky header state ---- */
     var header = document.getElementById('site-header');
     var onScroll = function () {

@@ -22,3 +22,14 @@ node_modules/
 logo/
 .tmp_thumbs/
 *.tmp
+
+# Owner's original (heavy) photo folders — only the optimized copies in
+# assets/img/slides and assets/img/gallery are committed
+/Motocycle rental/
+/Motocycle Tours/
+/Jeep rental/
+/Jeep tours/
+/Motorhome rental/
+/Motorhome  Tours/
+/car carrier/
+/Gallery pic/
