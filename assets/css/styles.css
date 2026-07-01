@@ -75,7 +75,7 @@ section[id] { scroll-margin-top: 5rem; }
 
 /* Brand logo (image) — swaps version on scroll */
 .brand-logo-img {
-  height: 56px;
+  height: 84px;
   width: auto;
   display: block;
   transition: height .3s ease;
@@ -83,9 +83,9 @@ section[id] { scroll-margin-top: 5rem; }
 .brand-logo-on-light { display: none; }            /* dark-text version hidden over hero */
 #site-header.scrolled .brand-logo-on-dark  { display: none; }
 #site-header.scrolled .brand-logo-on-light { display: block; }
-#site-header.scrolled .brand-logo-img { height: 46px; }
+#site-header.scrolled .brand-logo-img { height: 69px; }
 .footer-logo { height: 64px; width: auto; display: block; }
-@media (max-width: 480px) { .brand-logo-img { height: 50px; } }
+@media (max-width: 480px) { .brand-logo-img { height: 75px; } }
 
 .nav-link {
   position: relative;
@@ -112,7 +112,7 @@ section[id] { scroll-margin-top: 5rem; }
   backdrop-filter: blur(8px);
   box-shadow: 0 8px 28px -16px rgba(28,26,23,.45);
 }
-#site-header.scrolled #nav-inner { height: 4rem; }
+#site-header.scrolled #nav-inner { height: 5rem; }
 #site-header.scrolled .nav-brand   { color: #1C1A17; }
 #site-header.scrolled .nav-tagline { color: rgba(43,38,32,.55); }
 #site-header.scrolled .nav-link    { color: #2B2620; }
