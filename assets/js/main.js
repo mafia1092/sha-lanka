@@ -48,7 +48,7 @@
       setTimeout(function () { setInterval(advance, 5000); }, n * 700);
     });
 
-    /* ---- Gallery wall: random spotlight pop-up (3s) + tiles swap over time ---- */
+    /* ---- Gallery wall: tiles quietly swap photos (no resize); click opens full size ---- */
     var gWall = document.getElementById('gallery-wall');
     if (gWall) {
       var GAL_N = 45;
@@ -67,33 +67,15 @@
         return n;
       };
 
-      // Random spotlight: one tile enlarges (swapped to original size) for 3s, then another
-      var lastPop = -1;
-      var spotlight = function () {
-        if (lastPop > -1) {
-          var p = gTiles[lastPop];
-          p.classList.remove('pop');
-          p.querySelector('img').src = thumbUrl(+p.dataset.n);
-        }
-        var k = rint(gTiles.length);
-        while (k === lastPop) k = rint(gTiles.length);
-        var t = gTiles[k];
-        t.querySelector('img').src = largeUrl(+t.dataset.n);
-        t.classList.add('pop');
-        lastPop = k;
-      };
-
-      // Tiles quietly swap to fresh photos so all 45 rotate through the wall
-      var swapTimer = setInterval(function () {
-        var idx = rint(gTiles.length);
-        if (idx === lastPop) return;
-        var t = gTiles[idx];
+      // Every 3s, fade one random tile to a fresh photo so all 45 rotate through — no resizing
+      var swap = function () {
+        var t = gTiles[rint(gTiles.length)];
         var oldN = +t.dataset.n, nn = freePhoto();
         used[oldN] = false; used[nn] = true;
         var im = t.querySelector('img');
         im.style.opacity = '0';
-        setTimeout(function () { im.src = thumbUrl(nn); t.dataset.n = nn; im.style.opacity = '1'; }, 250);
-      }, 4500);
+        setTimeout(function () { im.src = thumbUrl(nn); t.dataset.n = nn; im.style.opacity = '1'; }, 300);
+      };
 
       // Click a tile -> open it full-screen (original size) in the lightbox
       gTiles.forEach(function (t) {
@@ -105,7 +87,7 @@
       });
 
       var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (reduce) { clearInterval(swapTimer); } else { spotlight(); setInterval(spotlight, 3000); }
+      if (!reduce) { setInterval(swap, 3000); }
     }
 
     /* ---- Sticky header state ---- */

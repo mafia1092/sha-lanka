@@ -402,11 +402,10 @@ section[id] { scroll-margin-top: 5rem; }
   display: block; width: 100%; margin: 0 0 .9rem; padding: 0;
   border: 0; background: none; border-radius: 12px; overflow: hidden;
   cursor: pointer; break-inside: avoid; line-height: 0; position: relative;
-  transition: transform .5s ease, box-shadow .5s ease, opacity .4s ease;
+  transition: box-shadow .35s ease;
 }
-.gtile img { width: 100%; display: block; }
-.gtile:hover { transform: scale(1.03); z-index: 4; }
-.gtile.pop { transform: scale(1.4); z-index: 6; box-shadow: 0 22px 48px rgba(0,0,0,.42); border-radius: 10px; }
+.gtile img { width: 100%; display: block; transition: opacity .45s ease; }
+.gtile:hover { box-shadow: 0 10px 26px -8px rgba(0,0,0,.45); }
 @media (max-width: 900px) { .gallery-wall { columns: 3; } }
 @media (max-width: 560px) { .gallery-wall { columns: 2; } }
 
