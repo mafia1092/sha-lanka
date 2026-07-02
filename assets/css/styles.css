@@ -409,21 +409,12 @@ section[id] { scroll-margin-top: 5rem; }
 @media (max-width: 900px) { .gallery-wall { columns: 3; } }
 @media (max-width: 560px) { .gallery-wall { columns: 2; } }
 
-/* ---------- Footer partner-site logos ---------- */
-.partner-logos { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1rem; }
-.partner-logo {
-  display: inline-flex; align-items: center; justify-content: center;
-  background: #F5F0E6; border-radius: 14px; padding: 10px 18px;
-  height: 76px; min-width: 130px;
-  transition: transform .3s ease, box-shadow .3s ease;
-}
-.partner-logo img { max-height: 54px; width: auto; display: block; }
-.partner-logo:hover { transform: translateY(-3px); box-shadow: 0 14px 28px -12px rgba(0,0,0,.6); }
-@media (max-width: 480px) {
-  .partner-logos { gap: .7rem; }
-  .partner-logo { height: 64px; min-width: 44%; padding: 8px 12px; }
-  .partner-logo img { max-height: 44px; }
-}
+/* ---------- Footer partner-site logos (compact single line) ---------- */
+.partner-logos { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1.75rem; }
+.partner-logo { display: inline-flex; align-items: center; justify-content: center; transition: transform .3s ease; }
+.partner-logo img { height: 28px; width: auto; display: block; }
+.partner-logo:hover { transform: translateY(-2px) scale(1.08); }
+@media (max-width: 480px) { .partner-logos { gap: 1.1rem; } .partner-logo img { height: 24px; } }
 
 /* ---------- FAQ accordion ---------- */
 .faq-item {
