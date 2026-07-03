@@ -48,7 +48,7 @@
       setTimeout(function () { setInterval(advance, 5000); }, n * 700);
     });
 
-    /* ---- Gallery mosaic: orientation-matched frames + running "pop" swap ---- */
+    /* ---- Gallery mosaic: balanced equal-height columns + running "pop" swap ---- */
     var gMosaic = document.getElementById('gallery-mosaic');
     if (gMosaic) {
       var pad = function (n) { return (n < 10 ? '0' : '') + n; };
@@ -61,11 +61,45 @@
       var PORT = [6, 7, 17, 19, 20, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 39, 40, 41, 43, 44, 45];
 
       var gFrames = Array.prototype.slice.call(gMosaic.querySelectorAll('.gframe'));
+      var landFrames = gFrames.filter(function (f) { return f.dataset.orient !== 'port'; });
+      var portFrames = gFrames.filter(function (f) { return f.dataset.orient === 'port'; });
+
       var usedLand = {}, usedPort = {};
       gFrames.forEach(function (f) {
         if (f.dataset.orient === 'port') usedPort[+f.dataset.n] = true;
         else usedLand[+f.dataset.n] = true;
       });
+
+      // Lay the frames into N equal-composition columns: every column gets the same
+      // number of landscape + portrait frames, so all columns end at the SAME height
+      // (flat bottom, no ragged gaps). Responsive: 4 columns wide, 2 when narrow.
+      var currentCols = 0;
+      var layout = function () {
+        var cols = window.innerWidth >= 900 ? 4 : 2;
+        if (cols === currentCols) return;
+        currentCols = cols;
+        var perL = Math.floor(landFrames.length / cols);
+        var perP = Math.floor(portFrames.length / cols);
+        gMosaic.innerHTML = '';
+        var li = 0, pi = 0;
+        for (var c = 0; c < cols; c++) {
+          var col = document.createElement('div');
+          col.className = 'gcol';
+          var cl = landFrames.slice(li, li + perL); li += perL;
+          var cp = portFrames.slice(pi, pi + perP); pi += perP;
+          var maxk = Math.max(cl.length, cp.length);
+          for (var k = 0; k < maxk; k++) {           // interleave, flip lead per column
+            var a = (c % 2 === 0) ? cl[k] : cp[k];
+            var b = (c % 2 === 0) ? cp[k] : cl[k];
+            if (a) col.appendChild(a);
+            if (b) col.appendChild(b);
+          }
+          gMosaic.appendChild(col);
+        }
+      };
+      layout();
+      var rz;
+      window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(layout, 150); });
 
       var freeFrom = function (pool, used) {
         var n, guard = 0;
@@ -82,15 +116,11 @@
         if (nn === oldN) return;
         used[oldN] = false; used[nn] = true;
         var im = f.querySelector('img');
-        var pre = new Image();
-        pre.onload = function () {
-          im.style.opacity = '0'; im.style.transform = 'scale(.96)';
-          setTimeout(function () {
-            im.src = thumbUrl(nn); f.dataset.n = nn;
-            im.style.opacity = '1'; im.style.transform = 'none';
-          }, 280);
-        };
-        pre.src = thumbUrl(nn);
+        im.style.opacity = '0'; im.style.transform = 'scale(.96)';
+        setTimeout(function () {
+          im.src = thumbUrl(nn); f.dataset.n = nn;
+          im.style.opacity = '1'; im.style.transform = 'none';
+        }, 280);
       };
 
       // Click a frame -> open the full original in the lightbox
