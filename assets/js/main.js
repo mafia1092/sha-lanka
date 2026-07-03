@@ -48,46 +48,65 @@
       setTimeout(function () { setInterval(advance, 5000); }, n * 700);
     });
 
-    /* ---- Gallery wall: tiles quietly swap photos (no resize); click opens full size ---- */
-    var gWall = document.getElementById('gallery-wall');
-    if (gWall) {
-      var GAL_N = 45;
+    /* ---- Gallery mosaic: orientation-matched frames + running "pop" swap ---- */
+    var gMosaic = document.getElementById('gallery-mosaic');
+    if (gMosaic) {
       var pad = function (n) { return (n < 10 ? '0' : '') + n; };
       var thumbUrl = function (n) { return 'assets/img/gallery/g' + pad(n) + '.jpg'; };
       var largeUrl = function (n) { return 'assets/img/gallery/g' + pad(n) + '-lg.jpg'; };
       var rint = function (n) { return Math.floor(Math.random() * n); };
 
-      var gTiles = Array.prototype.slice.call(gWall.querySelectorAll('.gtile'));
-      var used = {};
-      gTiles.forEach(function (t) { used[+t.dataset.n] = true; });
+      // Gallery photos bucketed by orientation (the 2 square photos ride with landscape)
+      var LAND = [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 21, 22, 23, 33, 35, 36, 37, 38, 42];
+      var PORT = [6, 7, 17, 19, 20, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 39, 40, 41, 43, 44, 45];
 
-      var freePhoto = function () {
+      var gFrames = Array.prototype.slice.call(gMosaic.querySelectorAll('.gframe'));
+      var usedLand = {}, usedPort = {};
+      gFrames.forEach(function (f) {
+        if (f.dataset.orient === 'port') usedPort[+f.dataset.n] = true;
+        else usedLand[+f.dataset.n] = true;
+      });
+
+      var freeFrom = function (pool, used) {
         var n, guard = 0;
-        do { n = 1 + rint(GAL_N); guard++; } while (used[n] && guard < 300);
+        do { n = pool[rint(pool.length)]; guard++; } while (used[n] && guard < 200);
         return n;
       };
 
-      // Every 3s, fade one random tile to a fresh photo so all 45 rotate through — no resizing
-      var swap = function () {
-        var t = gTiles[rint(gTiles.length)];
-        var oldN = +t.dataset.n, nn = freePhoto();
+      // Swap a frame to a fresh photo of ITS OWN orientation, with a soft fade + pop
+      var swapFrame = function (f) {
+        var isPort = f.dataset.orient === 'port';
+        var pool = isPort ? PORT : LAND;
+        var used = isPort ? usedPort : usedLand;
+        var oldN = +f.dataset.n, nn = freeFrom(pool, used);
+        if (nn === oldN) return;
         used[oldN] = false; used[nn] = true;
-        var im = t.querySelector('img');
-        im.style.opacity = '0';
-        setTimeout(function () { im.src = thumbUrl(nn); t.dataset.n = nn; im.style.opacity = '1'; }, 300);
+        var im = f.querySelector('img');
+        var pre = new Image();
+        pre.onload = function () {
+          im.style.opacity = '0'; im.style.transform = 'scale(.96)';
+          setTimeout(function () {
+            im.src = thumbUrl(nn); f.dataset.n = nn;
+            im.style.opacity = '1'; im.style.transform = 'none';
+          }, 280);
+        };
+        pre.src = thumbUrl(nn);
       };
 
-      // Click a tile -> open it full-screen (original size) in the lightbox
-      gTiles.forEach(function (t) {
-        t.addEventListener('click', function () {
+      // Click a frame -> open the full original in the lightbox
+      gFrames.forEach(function (f) {
+        f.addEventListener('click', function () {
           if (window.GLightbox) {
-            GLightbox({ elements: [{ href: largeUrl(+t.dataset.n), type: 'image' }] }).open();
+            GLightbox({ elements: [{ href: largeUrl(+f.dataset.n), type: 'image' }] }).open();
           }
         });
       });
 
+      // Running animation: every ~2.2s a random frame pops to a new same-orientation photo
       var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (!reduce) { setInterval(swap, 3000); }
+      if (!reduce) {
+        setInterval(function () { swapFrame(gFrames[rint(gFrames.length)]); }, 2200);
+      }
     }
 
     /* ---- Sticky header state ---- */
