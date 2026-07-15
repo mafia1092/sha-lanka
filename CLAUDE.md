@@ -54,12 +54,23 @@ cd public_html && for f in $(find . -name '*.php' -not -path './mail/*'); do php
 - Do not re-introduce `new Image().onload` preloading in the gallery
   animation (cached images never fire onload → animation freezes).
 
-## Go-live (when domain + hosting are bought)
-See the plan/HANDOVER: upload `public_html/*` to host's `public_html/`,
-create `../private/db.ini` (chmod 600), import `sql/schema.sql` via
-phpMyAdmin, visit `/admin/login.php` IMMEDIATELY to create the admin,
-enter Brevo SMTP creds in Settings, add SPF/DKIM for the new domain in
-Brevo, then merge `backend` → `main` and disable GitHub Pages.
-Launch checklist: Hostinger auto-backups ON, add DB to
-`~/db-backups/backup-databases.sh` (Keychain item `db-backup-shalanka`),
-UptimeRobot monitor, `git grep -i smtp_password` shows nothing secret.
+## Production (LIVE since 2026-07-15)
+- **URL:** https://shalankatravels.com — Hostinger shared hosting, SAME
+  account as the Ngo site (`u919711926`, SSH port 65002, IP 46.202.138.230).
+  Be careful: `~/domains/` also holds the LIVE Negombo sites — only ever
+  touch `~/domains/shalankatravels.com/`.
+- **Docroot:** `~/domains/shalankatravels.com/public_html` (PHP 8.2).
+- **DB:** `u919711926_gaQyX` (reused from the old WP site) — creds in
+  `~/domains/shalankatravels.com/private/db.ini` (chmod 600, outside webroot).
+- **Deploy** (from repo root; never use --delete — the server holds
+  admin-uploaded gallery images that are NOT in git):
+  ```bash
+  rsync -az --chmod=D755,F644 -e "ssh -p 65002" public_html/ \
+    u919711926@46.202.138.230:domains/shalankatravels.com/public_html/
+  ```
+  The `--chmod` matters: Hostinger 404s static files without world-read
+  (this bit us at go-live).
+- **Old WordPress site backup** (was on the domain before): server
+  `~/backups/shalankatravels-wp-2026-07-15/` + local
+  `../shalankatravels-wp-backup-2026-07-15/` (232 MB files + DB dump).
+- Git flow: `main` = what's in production; work on branches, merge, deploy.

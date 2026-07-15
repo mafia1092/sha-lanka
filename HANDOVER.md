@@ -1,11 +1,11 @@
 # Sha Lanka Travels — Project Handover
 
-> **⚠️ 2026-07-15 — this branch (`backend`) adds a PHP + MySQL backend** (inquiry
-> inbox, admin CMS at `/admin/`, analytics). The site moved into `public_html/`
-> and `index.html`/`faq.html` became PHP. **Read `CLAUDE.md` for the current
-> stack, commands and rules.** Sections below describing a "static site with no
-> backend" reflect `main` (still live on GitHub Pages) and will be rewritten at
-> the Hostinger go-live.
+> **⚠️ 2026-07-15 — SITE IS LIVE at https://shalankatravels.com** (Hostinger,
+> same account as the Ngo site). It now has a PHP + MySQL backend: inquiry
+> inbox, admin CMS at `/admin/`, analytics. GitHub Pages is retired.
+> **Read `CLAUDE.md` for the current stack, commands, deploy steps and rules.**
+> Sections below describing a "static site with no backend on GitHub Pages"
+> are HISTORICAL.
 
 Last updated: 2026-07-03. This is the single source of truth for picking the project up on another laptop (or a fresh Claude Code session). Everything needed to continue is here.
 
