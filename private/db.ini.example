@@ -1,0 +1,13 @@
+; Copy this file to db.ini (same folder) and fill in the real values.
+; db.ini is gitignored and must NEVER be committed.
+;
+; Locally:   private/db.ini  (next to public_html/)
+; Hostinger: /home/uXXXXXXX/domains/<your-domain>/private/db.ini
+;            (create the "private" folder as a SIBLING of public_html,
+;             so it is outside the webroot)
+
+[database]
+host     = localhost
+username = shalanka
+password = CHANGE_ME
+dbname   = shalanka

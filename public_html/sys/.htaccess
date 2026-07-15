@@ -1,0 +1,2 @@
+# sys/ holds shared PHP includes — nothing here should be reachable directly.
+Require all denied

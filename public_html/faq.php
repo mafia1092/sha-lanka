@@ -1,3 +1,15 @@
+<?php
+// faq.php — FAQ page; questions/answers come from the database (Admin -> FAQ).
+require_once __DIR__ . '/sys/db_connect.php';
+require_once __DIR__ . '/sys/helpers.php';
+require_once __DIR__ . '/sys/track.php';
+
+$faq_items = [];
+$res = $conn->query("SELECT question, answer FROM faq_items WHERE is_active = 1 ORDER BY sort_order, id");
+while ($row = $res->fetch_assoc()) {
+    $faq_items[] = $row;
+}
+?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
@@ -53,19 +65,19 @@
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-24" id="nav-inner">
         <!-- Brand: logo (swaps light/dark version on scroll) -->
-        <a href="index.html#home" class="flex items-center group" aria-label="Sha Lanka Travels — home">
+        <a href="index.php#home" class="flex items-center group" aria-label="Sha Lanka Travels — home">
           <img src="assets/img/logo-on-dark.png" alt="Sha Lanka Travels" class="brand-logo-img brand-logo-on-dark" />
           <img src="assets/img/logo-on-light.png" alt="Sha Lanka Travels" class="brand-logo-img brand-logo-on-light" />
         </a>
 
         <!-- Desktop nav -->
         <ul class="hidden lg:flex items-center gap-8 font-display tracking-wide text-[15px] uppercase">
-          <li><a href="index.html#about" class="nav-link">About</a></li>
-          <li><a href="index.html#fleet" class="nav-link">Fleet</a></li>
-          <li><a href="index.html#tours" class="nav-link">Tours</a></li>
-          <li><a href="index.html#carrier" class="nav-link">Car Carrier</a></li>
-          <li><a href="index.html#gallery" class="nav-link">Gallery</a></li>
-          <li><a href="index.html#contact" class="nav-link">Contact</a></li>
+          <li><a href="index.php#about" class="nav-link">About</a></li>
+          <li><a href="index.php#fleet" class="nav-link">Fleet</a></li>
+          <li><a href="index.php#tours" class="nav-link">Tours</a></li>
+          <li><a href="index.php#carrier" class="nav-link">Car Carrier</a></li>
+          <li><a href="index.php#gallery" class="nav-link">Gallery</a></li>
+          <li><a href="index.php#contact" class="nav-link">Contact</a></li>
         </ul>
 
         <!-- Mobile toggle -->
@@ -79,12 +91,12 @@
     <!-- Mobile menu -->
     <div id="mobile-menu" class="lg:hidden hidden bg-espresso/98 backdrop-blur border-t border-white/10">
       <ul class="px-6 py-4 space-y-1 font-display tracking-wide uppercase text-cream">
-        <li><a href="index.html#about" class="mobile-link">About</a></li>
-        <li><a href="index.html#fleet" class="mobile-link">Fleet</a></li>
-        <li><a href="index.html#tours" class="mobile-link">Tours</a></li>
-        <li><a href="index.html#carrier" class="mobile-link">Car Carrier</a></li>
-        <li><a href="index.html#gallery" class="mobile-link">Gallery</a></li>
-        <li><a href="index.html#contact" class="mobile-link">Contact</a></li>
+        <li><a href="index.php#about" class="mobile-link">About</a></li>
+        <li><a href="index.php#fleet" class="mobile-link">Fleet</a></li>
+        <li><a href="index.php#tours" class="mobile-link">Tours</a></li>
+        <li><a href="index.php#carrier" class="mobile-link">Car Carrier</a></li>
+        <li><a href="index.php#gallery" class="mobile-link">Gallery</a></li>
+        <li><a href="index.php#contact" class="mobile-link">Contact</a></li>
       </ul>
     </div>
   </header>
@@ -95,7 +107,7 @@
       <p class="eyebrow">Good to Know</p>
       <h1 class="section-title text-cream">Frequently Asked Questions</h1>
       <span class="title-underline mx-auto"></span>
-      <p class="section-sub text-cream/75">Everything you need to know about our rentals, guided tours and vehicle transport.</p>
+      <p class="section-sub text-cream/75"><?= t('faq_banner_sub') ?></p>
     </div>
   </section>
 
@@ -103,49 +115,19 @@
   <section id="faq" class="py-24 bg-cream">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="space-y-4" id="faq-list">
+        <?php foreach ($faq_items as $item): ?>
         <div class="faq-item" data-aos="fade-up">
           <button class="faq-q" aria-expanded="false">
-            <span>What do I need to rent a vehicle?</span>
+            <span><?= h($item['question']) ?></span>
             <svg class="faq-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </button>
-          <div class="faq-a"><p>A valid driving licence (and an International Driving Permit where required), a form of ID, and a refundable deposit. Our team will confirm the exact requirements for your chosen vehicle.</p></div>
+          <div class="faq-a"><p><?= nl2br(h($item['answer'])) ?></p></div>
         </div>
-
-        <div class="faq-item" data-aos="fade-up">
-          <button class="faq-q" aria-expanded="false">
-            <span>Do you deliver vehicles to my location?</span>
-            <svg class="faq-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          <div class="faq-a"><p>Yes — we offer island-wide pickup and delivery options for rentals. Share your location when you enquire and we'll arrange the most convenient handover.</p></div>
-        </div>
-
-        <div class="faq-item" data-aos="fade-up">
-          <button class="faq-q" aria-expanded="false">
-            <span>Are your guided tours customisable?</span>
-            <svg class="faq-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          <div class="faq-a"><p>Absolutely. Every itinerary can be tailored to your dates, pace and interests — from short weekend rides to multi-week island expeditions.</p></div>
-        </div>
-
-        <div class="faq-item" data-aos="fade-up">
-          <button class="faq-q" aria-expanded="false">
-            <span>What areas does the car carrier service cover?</span>
-            <svg class="faq-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          <div class="faq-a"><p>Our vehicle transport and towing covers the whole of Sri Lanka. Whether it's a breakdown recovery or a scheduled inter-city move, we'll get your vehicle there safely.</p></div>
-        </div>
-
-        <div class="faq-item" data-aos="fade-up">
-          <button class="faq-q" aria-expanded="false">
-            <span>Is insurance included?</span>
-            <svg class="faq-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-          </button>
-          <div class="faq-a"><p>All rentals and transport are covered by insurance. We'll walk you through exactly what's included and any optional extras before you book.</p></div>
-        </div>
+        <?php endforeach; ?>
       </div>
 
       <div class="text-center mt-14" data-aos="fade-up">
-        <a href="index.html" class="btn-primary">← Back to Home</a>
+        <a href="index.php" class="btn-primary">← Back to Home</a>
       </div>
     </div>
   </section>
@@ -156,7 +138,7 @@
       <div class="grid md:grid-cols-3 gap-10 pb-10 border-b border-white/10">
         <div>
           <img src="assets/img/logo-on-dark.png" alt="Sha Lanka Travels" class="footer-logo mb-4" />
-          <p class="font-light text-cream/70 max-w-xs">Your comprehensive travel partner — adventure-ready rentals, guided tours and nationwide vehicle transport across Sri Lanka.</p>
+          <p class="font-light text-cream/70 max-w-xs"><?= t('footer_tagline') ?></p>
           <div class="flex items-center gap-3 mt-5">
             <a href="https://www.facebook.com/profile.php?id=61575452196155" target="_blank" rel="noopener" aria-label="Facebook" class="social-ic"><svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M22 12a10 10 0 10-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.78-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0022 12z"/></svg></a>
             <a href="https://www.instagram.com/sha_lanka_travels/" target="_blank" rel="noopener" aria-label="Instagram" class="social-ic"><svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.43.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.43.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 01-1.38-.9 3.7 3.7 0 01-.9-1.38c-.16-.43-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.43-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zm0 3.68a6.16 6.16 0 100 12.32 6.16 6.16 0 000-12.32zm0 10.16a4 4 0 110-8 4 4 0 010 8zm6.41-10.4a1.44 1.44 0 11-2.88 0 1.44 1.44 0 012.88 0z"/></svg></a>
@@ -166,18 +148,18 @@
         <div>
           <h4 class="footer-h">Explore</h4>
           <ul class="space-y-2 font-light">
-            <li><a href="index.html#fleet" class="footer-link">Rental Fleet</a></li>
-            <li><a href="index.html#tours" class="footer-link">Guided Tours</a></li>
-            <li><a href="index.html#carrier" class="footer-link">Car Carrier</a></li>
-            <li><a href="index.html#gallery" class="footer-link">Gallery</a></li>
+            <li><a href="index.php#fleet" class="footer-link">Rental Fleet</a></li>
+            <li><a href="index.php#tours" class="footer-link">Guided Tours</a></li>
+            <li><a href="index.php#carrier" class="footer-link">Car Carrier</a></li>
+            <li><a href="index.php#gallery" class="footer-link">Gallery</a></li>
           </ul>
         </div>
         <div>
           <h4 class="footer-h">Company</h4>
           <ul class="space-y-2 font-light">
-            <li><a href="index.html#about" class="footer-link">About Us</a></li>
-            <li><a href="faq.html" class="footer-link">FAQ</a></li>
-            <li><a href="index.html#contact" class="footer-link">Contact</a></li>
+            <li><a href="index.php#about" class="footer-link">About Us</a></li>
+            <li><a href="faq.php" class="footer-link">FAQ</a></li>
+            <li><a href="index.php#contact" class="footer-link">Contact</a></li>
           </ul>
         </div>
       </div>

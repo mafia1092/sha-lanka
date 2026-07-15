@@ -10,6 +10,7 @@ node_modules/
 # Local env / secrets
 .env
 .env.local
+private/db.ini
 
 # Editor
 .vscode/

@@ -51,14 +51,16 @@
     /* ---- Gallery mosaic: balanced equal-height columns + running "pop" swap ---- */
     var gMosaic = document.getElementById('gallery-mosaic');
     if (gMosaic) {
-      var pad = function (n) { return (n < 10 ? '0' : '') + n; };
-      var thumbUrl = function (n) { return 'assets/img/gallery/g' + pad(n) + '.jpg'; };
-      var largeUrl = function (n) { return 'assets/img/gallery/g' + pad(n) + '-lg.jpg'; };
+      var thumbUrl = function (b) { return 'assets/img/gallery/' + b + '.jpg'; };
+      var largeUrl = function (b) { return 'assets/img/gallery/' + b + '-lg.jpg'; };
       var rint = function (n) { return Math.floor(Math.random() * n); };
 
-      // Gallery photos bucketed by orientation (the 2 square photos ride with landscape)
-      var LAND = [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 21, 22, 23, 33, 35, 36, 37, 38, 42];
-      var PORT = [6, 7, 17, 19, 20, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 39, 40, 41, 43, 44, 45];
+      // Photo lists come from the database — index.php injects window.GALLERY.
+      // The hardcoded arrays below are only a fallback if that injection is missing.
+      var LAND = (window.GALLERY && window.GALLERY.land && window.GALLERY.land.length) ? window.GALLERY.land
+        : ['g01','g02','g03','g04','g05','g08','g09','g10','g11','g12','g13','g14','g15','g16','g18','g21','g22','g23','g33','g35','g36','g37','g38','g42'];
+      var PORT = (window.GALLERY && window.GALLERY.port && window.GALLERY.port.length) ? window.GALLERY.port
+        : ['g06','g07','g17','g19','g20','g24','g25','g26','g27','g28','g29','g30','g31','g32','g34','g39','g40','g41','g43','g44','g45'];
 
       var gFrames = Array.prototype.slice.call(gMosaic.querySelectorAll('.gframe'));
       var landFrames = gFrames.filter(function (f) { return f.dataset.orient !== 'port'; });
@@ -66,8 +68,8 @@
 
       var usedLand = {}, usedPort = {};
       gFrames.forEach(function (f) {
-        if (f.dataset.orient === 'port') usedPort[+f.dataset.n] = true;
-        else usedLand[+f.dataset.n] = true;
+        if (f.dataset.orient === 'port') usedPort[f.dataset.base] = true;
+        else usedLand[f.dataset.base] = true;
       });
 
       // Lay the frames into N equal-composition columns: every column gets the same
@@ -112,13 +114,13 @@
         var isPort = f.dataset.orient === 'port';
         var pool = isPort ? PORT : LAND;
         var used = isPort ? usedPort : usedLand;
-        var oldN = +f.dataset.n, nn = freeFrom(pool, used);
-        if (nn === oldN) return;
-        used[oldN] = false; used[nn] = true;
+        var oldB = f.dataset.base, nb = freeFrom(pool, used);
+        if (nb === oldB) return;
+        used[oldB] = false; used[nb] = true;
         var im = f.querySelector('img');
         im.style.opacity = '0'; im.style.transform = 'scale(.96)';
         setTimeout(function () {
-          im.src = thumbUrl(nn); f.dataset.n = nn;
+          im.src = thumbUrl(nb); f.dataset.base = nb;
           im.style.opacity = '1'; im.style.transform = 'none';
         }, 280);
       };
@@ -127,7 +129,7 @@
       gFrames.forEach(function (f) {
         f.addEventListener('click', function () {
           if (window.GLightbox) {
-            GLightbox({ elements: [{ href: largeUrl(+f.dataset.n), type: 'image' }] }).open();
+            GLightbox({ elements: [{ href: largeUrl(f.dataset.base), type: 'image' }] }).open();
           }
         });
       });
@@ -197,10 +199,10 @@
     var yearEl = document.getElementById('year');
     if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-    /* ---- Contact form -> WhatsApp ---- */
+    /* ---- Contact form -> backend inbox (api/contact.php) ---- */
     var form = document.getElementById('contact-form');
     var status = document.getElementById('form-status');
-    var WA_NUMBER = '94777488746'; // Sha Lanka Travels WhatsApp (country code + number, no + or spaces)
+    var waFollow = document.getElementById('form-wa-follow');
 
     if (form) {
       form.addEventListener('submit', function (e) {
@@ -222,6 +224,7 @@
         var choice  = val('choice');
         var message = val('message');
 
+        // Same message, offered as an optional WhatsApp follow-up after sending
         var lines = [
           'Hello Sha Lanka Travels! I would like to make an enquiry.',
           '',
@@ -234,11 +237,48 @@
         lines.push('Message:');
         lines.push(message);
 
-        var waUrl = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(lines.join('\n'));
+        // WhatsApp number comes from the DB-rendered contact link (fallback hardcoded)
+        var waLinkEl = document.getElementById('whatsapp-link');
+        var waBase = (waLinkEl && waLinkEl.href) ? waLinkEl.href.split('?')[0] : 'https://wa.me/94777488746';
+        var waUrl = waBase + '?text=' + encodeURIComponent(lines.join('\n'));
 
-        // Opens WhatsApp Web on desktop or the WhatsApp app on mobile.
-        window.open(waUrl, '_blank', 'noopener');
-        showStatus("Opening WhatsApp with your details prefilled — just tap Send in the chat to reach us.", 'ok');
+        var showWa = function () {
+          if (!waFollow) return;
+          var a = waFollow.querySelector('a');
+          if (a) a.href = waUrl;
+          waFollow.classList.remove('hidden');
+        };
+        var fail = function () {
+          showStatus('Something went wrong sending your inquiry — please try again, or message us directly on WhatsApp:', 'err');
+          showWa();
+        };
+
+        var btn = form.querySelector('button[type="submit"]');
+        if (btn) btn.disabled = true;
+
+        fetch('api/contact.php', { method: 'POST', body: new FormData(form) })
+          .then(function (r) {
+            return r.json().then(function (j) { return { code: r.status, body: j }; });
+          })
+          .then(function (res) {
+            if (btn) btn.disabled = false;
+            if (res.body && res.body.ok) {
+              showStatus("Thanks, " + name + "! Your inquiry has been sent — we'll get back to you by email soon.", 'ok');
+              showWa();
+              form.reset();
+            } else if (res.code === 429) {
+              showStatus('Too many messages in a short time — please wait a few minutes, or continue on WhatsApp:', 'warn');
+              showWa();
+            } else if (res.body && res.body.error === 'expired') {
+              showStatus('This page was open for a long time and the form expired — please reload the page and try again.', 'err');
+            } else {
+              fail();
+            }
+          })
+          .catch(function () {
+            if (btn) btn.disabled = false;
+            fail();
+          });
       });
     }
 

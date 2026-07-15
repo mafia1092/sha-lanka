@@ -1,3 +1,27 @@
+<?php
+// index.php — the public one-page site. Layout lives here in HTML; the
+// editable text/photos come from the database (managed in /admin).
+require_once __DIR__ . '/sys/db_connect.php';
+require_once __DIR__ . '/sys/helpers.php';
+require_once __DIR__ . '/sys/track.php';
+
+// Active gallery photos by orientation, in display order
+$gallery = ['land' => [], 'port' => []];
+$res = $conn->query("SELECT file_base, orientation FROM gallery_images WHERE is_active = 1 ORDER BY sort_order, id");
+while ($row = $res->fetch_assoc()) {
+    $gallery[$row['orientation']][] = $row['file_base'];
+}
+
+// Service cards keyed by slug (titles/descriptions/links editable in admin)
+$GLOBALS['service_cards'] = [];
+$res = $conn->query("SELECT * FROM service_cards");
+while ($row = $res->fetch_assoc()) {
+    $GLOBALS['service_cards'][$row['slug']] = $row;
+}
+function card($slug, $field, $fallback = '') {
+    return h($GLOBALS['service_cards'][$slug][$field] ?? $fallback);
+}
+?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
@@ -98,12 +122,12 @@
     <div class="absolute inset-0 hero-overlay"></div>
 
     <div class="relative z-10 max-w-4xl mx-auto px-6 text-center text-cream pt-24 pb-16">
-      <p class="font-display tracking-[0.35em] uppercase text-brandglow text-sm mb-5" data-aos="fade-up">Your Comprehensive Travel Partner</p>
+      <p class="font-display tracking-[0.35em] uppercase text-brandglow text-sm mb-5" data-aos="fade-up"><?= t('hero_eyebrow', 'Your Comprehensive Travel Partner') ?></p>
       <h1 class="font-display font-700 uppercase leading-[0.95] text-5xl sm:text-6xl md:text-7xl mb-6" data-aos="fade-up" data-aos-delay="100">
-        Explore Sri Lanka,<br /><span class="text-brandglow">Your Way</span>
+        <?= t('hero_title_1', 'Explore Sri Lanka,') ?><br /><span class="text-brandglow"><?= t('hero_title_2', 'Your Way') ?></span>
       </h1>
       <p class="max-w-2xl mx-auto text-lg md:text-xl text-cream/85 mb-9 font-light" data-aos="fade-up" data-aos-delay="200">
-        Adventure-ready motorcycles, rugged 4x4 jeeps and overland motorhomes — plus expertly guided tours and nationwide vehicle transport.
+        <?= t('hero_sub') ?>
       </p>
       <div class="flex flex-col sm:flex-row items-center justify-center gap-4" data-aos="fade-up" data-aos-delay="300">
         <a href="#fleet" class="btn-primary text-base">Explore the Fleet</a>
@@ -130,10 +154,10 @@
         <div data-aos="fade-right">
           <h3 class="font-display font-600 uppercase text-3xl mb-5 text-espresso">Our Story</h3>
           <p class="text-lg leading-relaxed text-bark/80 mb-5 font-light">
-            Born from a love of the open road and Sri Lanka's wild, beautiful terrain, Sha Lanka Travels is built on an adventure-ready heritage. From misty hill-country passes to coastal highways and rugged backcountry trails, we equip travellers with vehicles and journeys made to go further.
+            <?= t('about_story_1') ?>
           </p>
           <p class="text-lg leading-relaxed text-bark/80 mb-8 font-light">
-            Whether you want the freedom to roam on your own or a curated expedition led by people who know every bend in the road, we've got you covered — three ways:
+            <?= t('about_story_2') ?>
           </p>
 
           <ul class="clean-list space-y-4">
@@ -181,7 +205,7 @@
         <p class="eyebrow">Rentals</p>
         <h2 class="section-title">Our Rental Fleet</h2>
         <span class="title-underline"></span>
-        <p class="section-sub">Three ways to roam the island — each maintained, road-ready, and built for the journey ahead.</p>
+        <p class="section-sub"><?= t('fleet_sub') ?></p>
       </div>
 
       <div class="grid md:grid-cols-3 gap-8">
@@ -197,15 +221,15 @@
             <img src="assets/img/badge-moto-rentals.png" alt="Negombo Motorcycle Tours — Motorcycle Rentals by Sha Lanka Travels" class="card-badge" loading="lazy" />
           </div>
           <div class="fleet-body">
-            <h3 class="fleet-title">Motorcycles</h3>
-            <p class="fleet-desc">Adventure-ready riding for the open road and the back trails. Light, nimble and endlessly fun.</p>
+            <h3 class="fleet-title"><?= card('moto-rental', 'title', 'Motorcycles') ?></h3>
+            <p class="fleet-desc"><?= card('moto-rental', 'description') ?></p>
             <ul class="clean-list text-[15px] space-y-2.5">
               <li><span class="tick"></span> Adventure &amp; touring models</li>
               <li><span class="tick"></span> Helmets &amp; gear included</li>
               <li><span class="tick"></span> Daily &amp; weekly rates</li>
               <li><span class="tick"></span> Island-wide pickup options</li>
             </ul>
-            <a href="https://negombo-motorcycle-tours.com/" target="_blank" rel="noopener" class="card-cta">Visit Website →</a>
+            <a href="<?= card('moto-rental', 'link_url', 'https://negombo-motorcycle-tours.com/') ?>" target="_blank" rel="noopener" class="card-cta">Visit Website →</a>
           </div>
         </article>
 
@@ -221,15 +245,15 @@
             <img src="assets/img/badge-jeep.png" alt="Sri Lanka Jeep Tours by Sha Lanka Travels" class="card-badge" loading="lazy" />
           </div>
           <div class="fleet-body">
-            <h3 class="fleet-title">Jeeps</h3>
-            <p class="fleet-desc">Rugged 4x4 capability for national parks, mountain trails and everything in between.</p>
+            <h3 class="fleet-title"><?= card('jeep-rental', 'title', 'Jeeps') ?></h3>
+            <p class="fleet-desc"><?= card('jeep-rental', 'description') ?></p>
             <ul class="clean-list text-[15px] space-y-2.5">
               <li><span class="tick"></span> Genuine 4-wheel drive</li>
               <li><span class="tick"></span> Self-drive or with driver</li>
               <li><span class="tick"></span> Safari &amp; off-road ready</li>
               <li><span class="tick"></span> Roof racks &amp; extras</li>
             </ul>
-            <a href="https://srilankajeeprent.com/" target="_blank" rel="noopener" class="card-cta">Visit Website →</a>
+            <a href="<?= card('jeep-rental', 'link_url', 'https://srilankajeeprent.com/') ?>" target="_blank" rel="noopener" class="card-cta">Visit Website →</a>
           </div>
         </article>
 
@@ -245,15 +269,15 @@
             <img src="assets/img/badge-motorhome.png" alt="Camper Explore — Motor Home Tours by Sha Lanka Travels" class="card-badge" loading="lazy" />
           </div>
           <div class="fleet-body">
-            <h3 class="fleet-title">Motorhomes</h3>
-            <p class="fleet-desc">Comfortable overland travel with your bed, kitchen and view all on board.</p>
+            <h3 class="fleet-title"><?= card('motorhome-rental', 'title', 'Motorhomes') ?></h3>
+            <p class="fleet-desc"><?= card('motorhome-rental', 'description') ?></p>
             <ul class="clean-list text-[15px] space-y-2.5">
               <li><span class="tick"></span> Sleeps 2–4 travellers</li>
               <li><span class="tick"></span> Kitchenette &amp; storage</li>
               <li><span class="tick"></span> Built for long journeys</li>
               <li><span class="tick"></span> Fully serviced &amp; insured</li>
             </ul>
-            <a href="https://camperexplore.com/index.html" target="_blank" rel="noopener" class="card-cta">Visit Website →</a>
+            <a href="<?= card('motorhome-rental', 'link_url', 'https://camperexplore.com/index.html') ?>" target="_blank" rel="noopener" class="card-cta">Visit Website →</a>
           </div>
         </article>
       </div>
@@ -267,7 +291,7 @@
         <p class="eyebrow">Curated Itineraries</p>
         <h2 class="section-title text-cream">Guided Tours</h2>
         <span class="title-underline"></span>
-        <p class="section-sub text-cream/75">Hand-crafted journeys led by local guides who know the island inside out.</p>
+        <p class="section-sub text-cream/75"><?= t('tours_sub') ?></p>
       </div>
 
       <div class="grid md:grid-cols-3 gap-8">
@@ -283,14 +307,14 @@
             <img src="assets/img/badge-royal-enfield.png" alt="Ceylon Royal Enfield Tours — Adventure Tours by Sha Lanka Travels" class="card-badge" loading="lazy" />
           </div>
           <div class="p-7">
-            <h3 class="fleet-title text-cream">Motorcycle Tours</h3>
-            <p class="text-cream/70 font-light mb-4">Throttle through hill country, tea estates and coastal roads on a guided ride.</p>
+            <h3 class="fleet-title text-cream"><?= card('moto-tours', 'title', 'Motorcycle Tours') ?></h3>
+            <p class="text-cream/70 font-light mb-4"><?= card('moto-tours', 'description') ?></p>
             <ul class="clean-list clean-list--dark text-[15px] space-y-2.5">
               <li><span class="tick"></span> Multi-day routes</li>
               <li><span class="tick"></span> Support vehicle &amp; mechanic</li>
               <li><span class="tick"></span> Curated stays &amp; stops</li>
             </ul>
-            <a href="https://www.srilankamotorcycletours.com/" target="_blank" rel="noopener" class="card-cta">Visit Website →</a>
+            <a href="<?= card('moto-tours', 'link_url', 'https://www.srilankamotorcycletours.com/') ?>" target="_blank" rel="noopener" class="card-cta">Visit Website →</a>
           </div>
         </article>
 
@@ -306,14 +330,14 @@
             <img src="assets/img/badge-jeep.png" alt="Sri Lanka Jeep Tours by Sha Lanka Travels" class="card-badge" loading="lazy" />
           </div>
           <div class="p-7">
-            <h3 class="fleet-title text-cream">Jeep Expeditions</h3>
-            <p class="text-cream/70 font-light mb-4">Off the beaten track to national parks, waterfalls and viewpoints few ever reach.</p>
+            <h3 class="fleet-title text-cream"><?= card('jeep-tours', 'title', 'Jeep Expeditions') ?></h3>
+            <p class="text-cream/70 font-light mb-4"><?= card('jeep-tours', 'description') ?></p>
             <ul class="clean-list clean-list--dark text-[15px] space-y-2.5">
               <li><span class="tick"></span> Wildlife &amp; safari routes</li>
               <li><span class="tick"></span> Expert local drivers</li>
               <li><span class="tick"></span> Off-road adventure trails</li>
             </ul>
-            <a href="https://srilankajeeptours.com/" target="_blank" rel="noopener" class="card-cta">Visit Website →</a>
+            <a href="<?= card('jeep-tours', 'link_url', 'https://srilankajeeptours.com/') ?>" target="_blank" rel="noopener" class="card-cta">Visit Website →</a>
           </div>
         </article>
 
@@ -329,14 +353,14 @@
             <img src="assets/img/badge-motorhome.png" alt="Camper Explore — Motor Home Tours by Sha Lanka Travels" class="card-badge" loading="lazy" />
           </div>
           <div class="p-7">
-            <h3 class="fleet-title text-cream">Motorhome Journeys</h3>
-            <p class="text-cream/70 font-light mb-4">Slow travel done right — a rolling basecamp following the island's best routes.</p>
+            <h3 class="fleet-title text-cream"><?= card('motorhome-tours', 'title', 'Motorhome Journeys') ?></h3>
+            <p class="text-cream/70 font-light mb-4"><?= card('motorhome-tours', 'description') ?></p>
             <ul class="clean-list clean-list--dark text-[15px] space-y-2.5">
               <li><span class="tick"></span> Flexible multi-day loops</li>
               <li><span class="tick"></span> Scenic overnight spots</li>
               <li><span class="tick"></span> Route planning included</li>
             </ul>
-            <a href="https://camperexplore.com/tours.html" target="_blank" rel="noopener" class="card-cta">Visit Website →</a>
+            <a href="<?= card('motorhome-tours', 'link_url', 'https://camperexplore.com/tours.html') ?>" target="_blank" rel="noopener" class="card-cta">Visit Website →</a>
           </div>
         </article>
       </div>
@@ -350,14 +374,14 @@
         <p class="eyebrow">Logistics</p>
         <h2 class="section-title">Car Carrier</h2>
         <span class="title-underline"></span>
-        <p class="section-sub">Specialised vehicle transport and towing — safe, insured and nationwide.</p>
+        <p class="section-sub"><?= t('carrier_sub') ?></p>
       </div>
 
       <div class="grid lg:grid-cols-2 gap-12 items-center">
         <div data-aos="fade-right" class="order-2 lg:order-1">
-          <h3 class="font-display font-600 uppercase text-3xl mb-5 text-espresso">Your Vehicle, Delivered Safely</h3>
+          <h3 class="font-display font-600 uppercase text-3xl mb-5 text-espresso"><?= card('car-carrier', 'title', 'Your Vehicle, Delivered Safely') ?></h3>
           <p class="text-lg leading-relaxed text-bark/80 mb-6 font-light">
-            When your vehicle needs to get somewhere it can't drive itself, our car carrier service handles it. From breakdowns and recovery to scheduled transport between cities, we move cars, bikes and equipment with care.
+            <?= card('car-carrier', 'description') ?>
           </p>
           <ul class="clean-list grid sm:grid-cols-2 gap-x-8 gap-y-3 text-[15px]">
             <li><span class="tick"></span> Flatbed car carrier transport</li>
@@ -368,7 +392,7 @@
             <li><span class="tick"></span> Fast response dispatch</li>
           </ul>
           <div class="mt-8 flex flex-wrap gap-4">
-            <a href="https://carcarriernegombo.com/" target="_blank" rel="noopener" class="btn-primary">Visit the Site →</a>
+            <a href="<?= card('car-carrier', 'link_url', 'https://carcarriernegombo.com/') ?>" target="_blank" rel="noopener" class="btn-primary">Visit the Site →</a>
           </div>
         </div>
 
@@ -392,26 +416,21 @@
         <p class="eyebrow">In the Wild</p>
         <h2 class="section-title">Gallery</h2>
         <span class="title-underline"></span>
-        <p class="section-sub">Vehicles, tours and scenic routes from across the island.</p>
+        <p class="section-sub"><?= t('gallery_sub') ?></p>
       </div>
 
       <div class="gallery-mosaic" id="gallery-mosaic" data-aos="fade-up">
-        <button class="gframe landscape" data-orient="land" data-n="1" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g01.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe portrait" data-orient="port" data-n="6" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g06.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe landscape" data-orient="land" data-n="2" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g02.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe portrait" data-orient="port" data-n="7" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g07.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe landscape" data-orient="land" data-n="3" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g03.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe portrait" data-orient="port" data-n="17" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g17.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe landscape" data-orient="land" data-n="4" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g04.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe portrait" data-orient="port" data-n="19" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g19.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe landscape" data-orient="land" data-n="5" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g05.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe portrait" data-orient="port" data-n="20" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g20.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe landscape" data-orient="land" data-n="8" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g08.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe portrait" data-orient="port" data-n="24" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g24.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe landscape" data-orient="land" data-n="9" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g09.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe portrait" data-orient="port" data-n="25" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g25.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe landscape" data-orient="land" data-n="10" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g10.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <button class="gframe portrait" data-orient="port" data-n="26" type="button" aria-label="View photo full size"><img src="assets/img/gallery/g26.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
+        <?php
+          // 16 frames (8 landscape + 8 portrait, interleaved) filled with the
+          // first photos of each orientation; main.js animates the rest in.
+          $frameCount = min(8, count($gallery['land']), count($gallery['port']));
+          for ($i = 0; $i < $frameCount; $i++):
+            foreach (['land', 'port'] as $o):
+              $base  = $gallery[$o][$i];
+              $shape = $o === 'port' ? 'portrait' : 'landscape';
+        ?>
+        <button class="gframe <?= $shape ?>" data-orient="<?= $o ?>" data-base="<?= h($base) ?>" type="button" aria-label="View photo full size"><img src="assets/img/gallery/<?= h($base) ?>.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
+        <?php endforeach; endfor; ?>
       </div>
     </div>
   </section>
@@ -423,15 +442,21 @@
         <p class="eyebrow">Get in Touch</p>
         <h2 class="section-title text-cream">Contact Us</h2>
         <span class="title-underline"></span>
-        <p class="section-sub text-cream/75">Tell us about your trip and we'll get back to you with a tailored quote.</p>
+        <p class="section-sub text-cream/75"><?= t('contact_sub') ?></p>
       </div>
 
       <div class="grid lg:grid-cols-5 gap-10">
         <!-- Form -->
         <div class="lg:col-span-3" data-aos="fade-up">
           <form id="contact-form" class="contact-card">
-            <!-- On submit, the details below are composed into a WhatsApp message
-                 and the chat opens (WhatsApp Web on desktop / the app on mobile). -->
+            <!-- Submits to api/contact.php (saved to the inbox + emailed to us).
+                 After success the visitor can also continue on WhatsApp. -->
+            <?= csrfField() ?>
+            <!-- Honeypot: humans never see this field; bots fill it -->
+            <div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
+              <label for="website_url">Leave this field empty</label>
+              <input type="text" id="website_url" name="website_url" tabindex="-1" autocomplete="off" />
+            </div>
             <div class="grid sm:grid-cols-2 gap-5">
               <div>
                 <label class="field-label" for="name">Name</label>
@@ -465,29 +490,32 @@
               <textarea class="field" id="message" name="message" rows="5" required placeholder="Tell us your dates, group size and what you're looking for..."></textarea>
             </div>
             <button type="submit" class="btn-primary w-full mt-6 text-base justify-center">
-              <svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413"/></svg>
-              Send via WhatsApp
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
+              Send Inquiry
             </button>
-            <p class="text-xs text-cream/55 mt-3 text-center">Tap to open WhatsApp with your details ready — then just hit send.</p>
+            <p class="text-xs text-cream/55 mt-3 text-center">We'll reply by email — or continue the chat on WhatsApp right after sending.</p>
             <p id="form-status" class="text-sm mt-4 text-center hidden"></p>
+            <p id="form-wa-follow" class="text-sm mt-2 text-center hidden">
+              <a href="#" target="_blank" rel="noopener" class="underline text-brandglow hover:text-cream">Prefer WhatsApp? Continue there →</a>
+            </p>
           </form>
         </div>
 
         <!-- Direct details -->
         <div class="lg:col-span-2 space-y-5" data-aos="fade-up" data-aos-delay="150">
-          <a href="tel:+94777488746" class="contact-detail">
+          <a href="tel:<?= h(preg_replace('/[^+\d]/', '', setting('business_phone', '+94777488746'))) ?>" class="contact-detail">
             <span class="contact-ic">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
             </span>
-            <span><span class="contact-label">Call us</span>+94 77 748 8746</span>
+            <span><span class="contact-label">Call us</span><?= h(setting('business_phone', '+94 77 748 8746')) ?></span>
           </a>
-          <a href="mailto:suranga007@yahoo.com" class="contact-detail">
+          <a href="mailto:<?= h(setting('business_email', 'suranga007@yahoo.com')) ?>" class="contact-detail">
             <span class="contact-ic">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
             </span>
-            <span><span class="contact-label">Email</span>suranga007@yahoo.com</span>
+            <span><span class="contact-label">Email</span><?= h(setting('business_email', 'suranga007@yahoo.com')) ?></span>
           </a>
-          <a id="whatsapp-link" href="https://wa.me/94777488746" target="_blank" rel="noopener" class="contact-detail">
+          <a id="whatsapp-link" href="<?= h(wa_link()) ?>" target="_blank" rel="noopener" class="contact-detail">
             <span class="contact-ic contact-ic--wa">
               <svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413"/></svg>
             </span>
@@ -497,7 +525,7 @@
             <span class="contact-ic">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
             </span>
-            <span><span class="contact-label">Location</span>137/4, St. Francis Road, Welihena, Kochchikade</span>
+            <span><span class="contact-label">Location</span><?= h(setting('business_address', '137/4, St. Francis Road, Welihena, Kochchikade')) ?></span>
           </div>
 
           <div class="flex items-center gap-3 pt-2">
@@ -516,7 +544,7 @@
       <div class="grid md:grid-cols-3 gap-10 pb-10 border-b border-white/10">
         <div>
           <img src="assets/img/logo-on-dark.png" alt="Sha Lanka Travels" class="footer-logo mb-4" />
-          <p class="font-light text-cream/70 max-w-xs">Your comprehensive travel partner — adventure-ready rentals, guided tours and nationwide vehicle transport across Sri Lanka.</p>
+          <p class="font-light text-cream/70 max-w-xs"><?= t('footer_tagline') ?></p>
           <div class="flex items-center gap-3 mt-5">
             <a href="https://www.facebook.com/profile.php?id=61575452196155" target="_blank" rel="noopener" aria-label="Facebook" class="social-ic"><svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M22 12a10 10 0 10-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.78-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0022 12z"/></svg></a>
             <a href="https://www.instagram.com/sha_lanka_travels/" target="_blank" rel="noopener" aria-label="Instagram" class="social-ic"><svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.43.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.43.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 01-1.38-.9 3.7 3.7 0 01-.9-1.38c-.16-.43-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.43-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zm0 3.68a6.16 6.16 0 100 12.32 6.16 6.16 0 000-12.32zm0 10.16a4 4 0 110-8 4 4 0 010 8zm6.41-10.4a1.44 1.44 0 11-2.88 0 1.44 1.44 0 012.88 0z"/></svg></a>
@@ -536,7 +564,7 @@
           <h4 class="footer-h">Company</h4>
           <ul class="space-y-2 font-light">
             <li><a href="#about" class="footer-link">About Us</a></li>
-            <li><a href="faq.html" class="footer-link">FAQ</a></li>
+            <li><a href="faq.php" class="footer-link">FAQ</a></li>
             <li><a href="#contact" class="footer-link">Contact</a></li>
           </ul>
         </div>
@@ -559,6 +587,13 @@
   </footer>
 
   <!-- Scripts -->
+  <script>
+    // Gallery photo lists (from the database) for the mosaic animation
+    window.GALLERY = {
+      land: <?= json_encode($gallery['land']) ?>,
+      port: <?= json_encode($gallery['port']) ?>
+    };
+  </script>
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js"></script>
   <script src="assets/js/main.js"></script>
