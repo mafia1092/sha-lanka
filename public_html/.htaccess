@@ -1,0 +1,11 @@
+# Sha Lanka Travels — production web server config (ignored by local php -S)
+
+# Force HTTPS
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Never serve dotfiles
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
