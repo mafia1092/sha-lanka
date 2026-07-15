@@ -69,9 +69,9 @@ function img_save_resized($im, $dest, $maxWidth, $quality) {
     } else {
         $out = $im;
     }
-    $ok = imagejpeg($out, $dest, $quality);
-    if ($out !== $im) imagedestroy($out);
-    return $ok;
+    // (GD images are garbage-collected automatically; imagedestroy() has been
+    // a no-op since PHP 8.0 and is deprecated in newer versions)
+    return imagejpeg($out, $dest, $quality);
 }
 
 /**
@@ -91,7 +91,6 @@ function img_process_gallery(array $file, $destDir, $fileBase) {
 
     $thumbOk = img_save_resized($im, rtrim($destDir, '/') . '/' . $fileBase . '.jpg', 700, 72);
     $largeOk = img_save_resized($im, rtrim($destDir, '/') . '/' . $fileBase . '-lg.jpg', 1600, 80);
-    imagedestroy($im);
 
     if (!$thumbOk || !$largeOk) {
         @unlink(rtrim($destDir, '/') . '/' . $fileBase . '.jpg');
@@ -115,6 +114,5 @@ function img_process_slide(array $file, $destPath) {
     if (!$im) return [false, 'Could not read the image data. Try re-saving it as JPEG.'];
 
     $saved = img_save_resized($im, $destPath, 1600, 80);
-    imagedestroy($im);
     return $saved ? [true, ''] : [false, 'Could not write the image (check folder permissions).'];
 }
