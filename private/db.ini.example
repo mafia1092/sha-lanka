@@ -6,8 +6,10 @@
 ;            (create the "private" folder as a SIBLING of public_html,
 ;             so it is outside the webroot)
 
+; Keep the password in double quotes — that way special characters
+; (; = # " etc.) are read literally.
 [database]
 host     = localhost
 username = shalanka
-password = CHANGE_ME
+password = "CHANGE_ME"
 dbname   = shalanka

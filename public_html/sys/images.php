@@ -54,23 +54,18 @@ function img_load($path, $type) {
     return $im;
 }
 
-// Save a resized JPEG copy (never upscales)
+// Save a resized JPEG copy (never upscales). ALWAYS composites onto a white
+// canvas so PNG/WebP transparency flattens consistently — JPEG has no alpha,
+// and skipping this in the no-resize path would give a black background.
 function img_save_resized($im, $dest, $maxWidth, $quality) {
     $w = imagesx($im);
     $h = imagesy($im);
-    if ($w > $maxWidth) {
-        $nw = $maxWidth;
-        $nh = (int)round($h * ($maxWidth / $w));
-        $out = imagecreatetruecolor($nw, $nh);
-        // PNG/WebP transparency -> white background (we output JPEG)
-        $white = imagecolorallocate($out, 255, 255, 255);
-        imagefill($out, 0, 0, $white);
-        imagecopyresampled($out, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
-    } else {
-        $out = $im;
-    }
-    // (GD images are garbage-collected automatically; imagedestroy() has been
-    // a no-op since PHP 8.0 and is deprecated in newer versions)
+    $nw = min($w, $maxWidth);
+    $nh = ($nw === $w) ? $h : max(1, (int)round($h * ($nw / $w)));
+    $out = imagecreatetruecolor($nw, $nh);
+    $white = imagecolorallocate($out, 255, 255, 255);
+    imagefill($out, 0, 0, $white);
+    imagecopyresampled($out, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
     return imagejpeg($out, $dest, $quality);
 }
 
@@ -113,6 +108,19 @@ function img_process_slide(array $file, $destPath) {
     $im = img_load($file['tmp_name'], $type);
     if (!$im) return [false, 'Could not read the image data. Try re-saving it as JPEG.'];
 
-    $saved = img_save_resized($im, $destPath, 1600, 80);
-    return $saved ? [true, ''] : [false, 'Could not write the image (check folder permissions).'];
+    // Write to a temp file first and only replace the live slide once the new
+    // file is verified — a failed/partial write must never destroy the
+    // existing good image that is showing on the site right now.
+    $tmp = $destPath . '.tmp';
+    $saved = img_save_resized($im, $tmp, 1600, 80);
+    $info  = $saved ? @getimagesize($tmp) : false;
+    if (!$saved || !$info || $info[0] < 1) {
+        @unlink($tmp);
+        return [false, 'Could not write the image (check folder permissions / disk space).'];
+    }
+    if (!rename($tmp, $destPath)) {
+        @unlink($tmp);
+        return [false, 'Could not replace the existing image (check folder permissions).'];
+    }
+    return [true, ''];
 }

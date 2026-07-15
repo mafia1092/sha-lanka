@@ -132,8 +132,12 @@ CREATE TABLE IF NOT EXISTS rate_limit (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- SEED DATA (INSERT IGNORE = skipped when the key already exists,
--- so re-running this file never overwrites your edits)
+-- SEED DATA — re-run safe:
+--  * settings / site_content / service_cards use INSERT IGNORE (rows the
+--    admin only EDITS — existing values are never overwritten, and new keys
+--    added in future versions get created)
+--  * gallery_images / faq_items seed ONLY into an empty table (rows the
+--    admin can DELETE — a re-import must not resurrect them)
 -- ============================================================
 
 -- Settings (SMTP username/password/from left EMPTY on purpose — enter them
@@ -178,18 +182,29 @@ INSERT IGNORE INTO service_cards (slug, section, title, description, link_url, s
   ('motorhome-tours',  'tours',   'Motorhome Journeys', 'Slow travel done right — a rolling basecamp following the island''s best routes.', 'https://camperexplore.com/tours.html', 3),
   ('car-carrier',      'carrier', 'Your Vehicle, Delivered Safely', 'When your vehicle needs to get somewhere it can''t drive itself, our car carrier service handles it. From breakdowns and recovery to scheduled transport between cities, we move cars, bikes and equipment with care.', 'https://carcarriernegombo.com/', 1);
 
--- Gallery: the 45 existing photos. Orientations copied from the old
--- hard-coded LAND/PORT arrays in assets/js/main.js.
-INSERT IGNORE INTO gallery_images (file_base, orientation, sort_order) VALUES
-  ('g01','land',1),('g02','land',2),('g03','land',3),('g04','land',4),('g05','land',5),
-  ('g06','port',6),('g07','port',7),('g08','land',8),('g09','land',9),('g10','land',10),
-  ('g11','land',11),('g12','land',12),('g13','land',13),('g14','land',14),('g15','land',15),
-  ('g16','land',16),('g17','port',17),('g18','land',18),('g19','port',19),('g20','port',20),
-  ('g21','land',21),('g22','land',22),('g23','land',23),('g24','port',24),('g25','port',25),
-  ('g26','port',26),('g27','port',27),('g28','port',28),('g29','port',29),('g30','port',30),
-  ('g31','port',31),('g32','port',32),('g33','land',33),('g34','port',34),('g35','land',35),
-  ('g36','land',36),('g37','land',37),('g38','land',38),('g39','port',39),('g40','port',40),
-  ('g41','port',41),('g42','land',42),('g43','port',43),('g44','port',44),('g45','port',45);
+-- Gallery: the 45 original photos. Seeded ONLY when the table is empty —
+-- the admin deletes gallery rows (and their files), and INSERT IGNORE would
+-- resurrect them as broken tiles on a re-import.
+INSERT INTO gallery_images (file_base, orientation, sort_order)
+SELECT b, o, s FROM (
+  SELECT 'g01' AS b, 'land' AS o, 1 AS s
+  UNION ALL SELECT 'g02','land',2  UNION ALL SELECT 'g03','land',3  UNION ALL SELECT 'g04','land',4
+  UNION ALL SELECT 'g05','land',5  UNION ALL SELECT 'g06','port',6  UNION ALL SELECT 'g07','port',7
+  UNION ALL SELECT 'g08','land',8  UNION ALL SELECT 'g09','land',9  UNION ALL SELECT 'g10','land',10
+  UNION ALL SELECT 'g11','land',11 UNION ALL SELECT 'g12','land',12 UNION ALL SELECT 'g13','land',13
+  UNION ALL SELECT 'g14','land',14 UNION ALL SELECT 'g15','land',15 UNION ALL SELECT 'g16','land',16
+  UNION ALL SELECT 'g17','port',17 UNION ALL SELECT 'g18','land',18 UNION ALL SELECT 'g19','port',19
+  UNION ALL SELECT 'g20','port',20 UNION ALL SELECT 'g21','land',21 UNION ALL SELECT 'g22','land',22
+  UNION ALL SELECT 'g23','land',23 UNION ALL SELECT 'g24','port',24 UNION ALL SELECT 'g25','port',25
+  UNION ALL SELECT 'g26','port',26 UNION ALL SELECT 'g27','port',27 UNION ALL SELECT 'g28','port',28
+  UNION ALL SELECT 'g29','port',29 UNION ALL SELECT 'g30','port',30 UNION ALL SELECT 'g31','port',31
+  UNION ALL SELECT 'g32','port',32 UNION ALL SELECT 'g33','land',33 UNION ALL SELECT 'g34','port',34
+  UNION ALL SELECT 'g35','land',35 UNION ALL SELECT 'g36','land',36 UNION ALL SELECT 'g37','land',37
+  UNION ALL SELECT 'g38','land',38 UNION ALL SELECT 'g39','port',39 UNION ALL SELECT 'g40','port',40
+  UNION ALL SELECT 'g41','port',41 UNION ALL SELECT 'g42','land',42 UNION ALL SELECT 'g43','port',43
+  UNION ALL SELECT 'g44','port',44 UNION ALL SELECT 'g45','port',45
+) seed
+WHERE NOT EXISTS (SELECT 1 FROM gallery_images);
 
 -- FAQ (seeded only when the table is completely empty)
 INSERT INTO faq_items (question, answer, sort_order)

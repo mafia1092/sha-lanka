@@ -106,7 +106,9 @@
       var freeFrom = function (pool, used) {
         var n, guard = 0;
         do { n = pool[rint(pool.length)]; guard++; } while (used[n] && guard < 200);
-        return n;
+        // null = every photo of this orientation is already on screen
+        // (possible at the 8-photo minimum) — caller skips the swap.
+        return used[n] ? null : n;
       };
 
       // Swap a frame to a fresh photo of ITS OWN orientation, with a soft fade + pop
@@ -115,7 +117,7 @@
         var pool = isPort ? PORT : LAND;
         var used = isPort ? usedPort : usedLand;
         var oldB = f.dataset.base, nb = freeFrom(pool, used);
-        if (nb === oldB) return;
+        if (!nb || nb === oldB) return;
         used[oldB] = false; used[nb] = true;
         var im = f.querySelector('img');
         im.style.opacity = '0'; im.style.transform = 'scale(.96)';
@@ -271,6 +273,13 @@
               showWa();
             } else if (res.body && res.body.error === 'expired') {
               showStatus('This page was open for a long time and the form expired — please reload the page and try again.', 'err');
+            } else if (res.body && {name: 1, email: 1, message: 1}[res.body.error]) {
+              var fieldMsgs = {
+                name: 'Please check the name field (up to 120 characters).',
+                email: 'Please check your email address — it doesn\'t look valid.',
+                message: 'Please check your message (it can be up to 5000 characters).'
+              };
+              showStatus(fieldMsgs[res.body.error], 'warn');
             } else {
               fail();
             }

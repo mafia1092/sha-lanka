@@ -56,7 +56,10 @@ function ip_hash($conn) {
     $salt = setting('ip_salt');
     if ($salt === '') {
         $salt = bin2hex(random_bytes(16));
-        $stmt = $conn->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = 'ip_salt' AND (setting_value = '' OR setting_value IS NULL)");
+        // Upsert: works even if the seeded ip_salt row is missing; keeps any
+        // existing non-empty salt (first writer wins).
+        $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('ip_salt', ?)
+            ON DUPLICATE KEY UPDATE setting_value = IF(setting_value = '' OR setting_value IS NULL, VALUES(setting_value), setting_value)");
         $stmt->bind_param('s', $salt);
         $stmt->execute();
         $stmt->close();

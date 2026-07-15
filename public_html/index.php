@@ -19,7 +19,9 @@ while ($row = $res->fetch_assoc()) {
     $GLOBALS['service_cards'][$row['slug']] = $row;
 }
 function card($slug, $field, $fallback = '') {
-    return h($GLOBALS['service_cards'][$slug][$field] ?? $fallback);
+    $v = $GLOBALS['service_cards'][$slug][$field] ?? '';
+    // Empty DB value falls back too (e.g. a cleared link keeps the original)
+    return h(($v === '' || $v === null) ? $fallback : $v);
 }
 ?>
 <!DOCTYPE html>
@@ -460,15 +462,15 @@ function card($slug, $field, $fallback = '') {
             <div class="grid sm:grid-cols-2 gap-5">
               <div>
                 <label class="field-label" for="name">Name</label>
-                <input class="field" id="name" name="name" type="text" required placeholder="Your full name" />
+                <input class="field" id="name" name="name" type="text" required maxlength="120" placeholder="Your full name" />
               </div>
               <div>
                 <label class="field-label" for="email">Email</label>
-                <input class="field" id="email" name="email" type="email" required placeholder="you@example.com" />
+                <input class="field" id="email" name="email" type="email" required maxlength="190" placeholder="you@example.com" />
               </div>
               <div>
                 <label class="field-label" for="phone">Phone</label>
-                <input class="field" id="phone" name="phone" type="tel" placeholder="+94 ..." />
+                <input class="field" id="phone" name="phone" type="tel" maxlength="40" placeholder="+94 ..." />
               </div>
               <div>
                 <label class="field-label" for="choice">Vehicle / Tour Choice</label>
@@ -487,7 +489,7 @@ function card($slug, $field, $fallback = '') {
             </div>
             <div class="mt-5">
               <label class="field-label" for="message">Message</label>
-              <textarea class="field" id="message" name="message" rows="5" required placeholder="Tell us your dates, group size and what you're looking for..."></textarea>
+              <textarea class="field" id="message" name="message" rows="5" required maxlength="5000" placeholder="Tell us your dates, group size and what you're looking for..."></textarea>
             </div>
             <button type="submit" class="btn-primary w-full mt-6 text-base justify-center">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>

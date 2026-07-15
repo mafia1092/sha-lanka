@@ -75,15 +75,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 gallery_redirect('err', 'nofiles');
             }
 
+            // PHP silently drops files beyond max_file_uploads (default 20) —
+            // warn instead of pretending the whole batch succeeded. The form
+            // posts how many files were selected (file_count, set by JS).
+            $selected  = (int)($_POST['file_count'] ?? 0);
+            $uploadCap = (int)ini_get('max_file_uploads');
+            $dropped   = 0;
+            if ($selected > count($files)) {
+                $dropped = $selected - count($files);
+            } elseif ($uploadCap > 0 && count($files) >= $uploadCap) {
+                $dropped = -1; // no-JS fallback: exactly at the cap, may be more
+            }
+
             // New images go to the end of the sort order.
             $nextSort = (int)$conn->query("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM gallery_images")->fetch_row()[0];
 
             $results = []; // per-file outcome shown after the redirect
             $ins = $conn->prepare("INSERT INTO gallery_images (file_base, orientation, sort_order) VALUES (?, ?, ?)");
             foreach ($files as $file) {
-                // Unique filename: timestamp + random suffix (never the
-                // visitor-supplied name).
-                $base = 'g' . date('YmdHis') . '_' . bin2hex(random_bytes(2));
+                // Unique filename: timestamp + 8 random bytes (never the
+                // visitor-supplied name); regenerate on the off-chance of
+                // a collision so nothing is ever overwritten.
+                do {
+                    $base = 'g' . date('YmdHis') . '_' . bin2hex(random_bytes(8));
+                } while (file_exists($galleryDir . '/' . $base . '.jpg'));
                 [$ok, $errOrBase, $orientation] = img_process_gallery($file, $galleryDir, $base);
                 if ($ok) {
                     $ins->bind_param('ssi', $base, $orientation, $nextSort);
@@ -95,6 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             $ins->close();
+            if ($dropped > 0) {
+                $results[] = ['ok' => false, 'text' => "Only " . count($files) . " of $selected photos were received — the server accepts at most $uploadCap per upload. Please upload the remaining $dropped in a smaller batch."];
+            } elseif ($dropped === -1) {
+                $results[] = ['ok' => false, 'text' => "You hit the server's limit of $uploadCap photos per upload — if you selected more, upload the rest in another batch."];
+            }
             $_SESSION['gallery_upload_results'] = $results;
             gallery_redirect('msg', 'uploaded');
         }
@@ -250,9 +270,11 @@ include __DIR__ . '/inc/header.php';
     JPEG, PNG or WebP — you can select several at once. Photos are resized automatically.
     iPhone HEIC photos are not supported: export them as JPEG first.
   </p>
-  <form method="post" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
+  <form method="post" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3"
+        onsubmit="this.file_count.value = this.querySelector('[name=&quot;photos[]&quot;]').files.length">
     <?= csrfField() ?>
     <input type="hidden" name="action" value="upload">
+    <input type="hidden" name="file_count" value="0">
     <input type="file" name="photos[]" multiple accept="image/*" required
            class="text-sm text-gray-700 file:mr-3 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-gray-100 file:text-sm hover:file:bg-gray-200">
     <button type="submit" class="bg-brand text-white text-sm px-3 py-1.5 rounded hover:bg-brandglow">Upload</button>

@@ -32,7 +32,9 @@ try {
         jout(400, ['ok' => false, 'error' => 'expired']);
     }
 
-    // 3. Rate limit — max 3 accepted attempts per visitor per 15 minutes
+    // 3. Rate limit check — max 3 ACCEPTED submissions per visitor per 15 min.
+    //    (The slot is only recorded after validation passes, in step 4b —
+    //    a typo that gets rejected must not burn the visitor's quota.)
     $iph  = ip_hash($conn);
     $stmt = $conn->prepare("SELECT COUNT(*) AS c FROM rate_limit WHERE kind = 'contact' AND ip_hash = ? AND created_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)");
     $stmt->bind_param('s', $iph);
@@ -42,10 +44,6 @@ try {
     if ($tries >= 3) {
         jout(429, ['ok' => false, 'error' => 'rate']);
     }
-    $stmt = $conn->prepare("INSERT INTO rate_limit (kind, ip_hash) VALUES ('contact', ?)");
-    $stmt->bind_param('s', $iph);
-    $stmt->execute();
-    $stmt->close();
 
     // 4. Validate input
     $name    = trim($_POST['name'] ?? '');
@@ -69,6 +67,12 @@ try {
     }
     if (mb_strlen($phone) > 40) $phone = mb_substr($phone, 0, 40);
     if (!in_array($choice, $allowed_choices, true)) $choice = 'Something else';
+
+    // 4b. Validation passed — record the rate-limit slot
+    $stmt = $conn->prepare("INSERT INTO rate_limit (kind, ip_hash) VALUES ('contact', ?)");
+    $stmt->bind_param('s', $iph);
+    $stmt->execute();
+    $stmt->close();
 
     // 5. Save the inquiry (this is the part that must never fail silently)
     $stmt = $conn->prepare("INSERT INTO inquiries (name, email, phone, service_choice, message, ip_hash) VALUES (?,?,?,?,?,?)");
