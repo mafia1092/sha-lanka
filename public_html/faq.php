@@ -18,8 +18,11 @@ while ($row = $res->fetch_assoc()) {
   <title>FAQ — Sha Lanka Travels</title>
   <meta name="description" content="Frequently asked questions about Sha Lanka Travels — rentals, guided tours and nationwide vehicle transport (car carrier) across Sri Lanka." />
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <!-- Favicon (brand "S" mark) -->
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 
   <!-- Google Fonts: Oswald (display) + Inter (body) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />

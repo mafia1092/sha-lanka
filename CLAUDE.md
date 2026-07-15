@@ -65,11 +65,15 @@ cd public_html && for f in $(find . -name '*.php' -not -path './mail/*'); do php
 - **Deploy** (from repo root; never use --delete — the server holds
   admin-uploaded gallery images that are NOT in git):
   ```bash
-  rsync -az --chmod=D755,F644 -e "ssh -p 65002" public_html/ \
+  rsync -az -e "ssh -p 65002" public_html/ \
     u919711926@46.202.138.230:domains/shalankatravels.com/public_html/
+  # macOS's rsync has no --chmod, so fix perms afterwards — Hostinger 404s
+  # any file that isn't world-readable (this bit us at go-live AND on the
+  # favicon update):
+  ssh -p 65002 u919711926@46.202.138.230 \
+    'cd domains/shalankatravels.com/public_html && \
+     find . -type d -exec chmod 755 {} + && find . -type f -exec chmod 644 {} +'
   ```
-  The `--chmod` matters: Hostinger 404s static files without world-read
-  (this bit us at go-live).
 - **Old WordPress site backup** (was on the domain before): server
   `~/backups/shalankatravels-wp-2026-07-15/` + local
   `../shalankatravels-wp-backup-2026-07-15/` (232 MB files + DB dump).
