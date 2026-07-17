@@ -399,20 +399,39 @@ section[id] { scroll-margin-top: 5rem; }
 /* ---------- Gallery mosaic (orientation-matched frames, balanced equal-height columns) ---------- */
 /* Full-bleed: the mosaic sits outside the centred container in index.php, so
    width:100% already spans the page — no 100vw (which counts the scrollbar
-   and would push the page sideways). The heading stays in the normal column. */
+   and would push the page sideways). The heading stays in the normal column.
+   IMPORTANT (iOS): no mask-image and no transform/AOS on this element. A mask
+   (or an animated transform) on the container of the sliding track hits a
+   WebKit compositing bug — iPhones drew the photos unmasked and overlapping
+   ("scrambled"). The edge fade is done with the ::before/::after gradient
+   overlays below instead, which never touch the animated layer. */
 .gallery-mosaic {
+  position: relative;
   width: 100%;
   overflow: hidden;
   /* The strip is far wider than the screen; paint containment tells the
      browser nothing renders outside this box (correct clipping + cheaper
      painting for the always-running slide). */
   contain: paint;
-  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%);
-          mask-image: linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%);
 }
+/* Edge fade: gradients from the section background colour (#EADECB =
+   bg-sand/40 flattened over the cream body) painted OVER the photo wall. */
+.gallery-mosaic::before,
+.gallery-mosaic::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 6%;
+  z-index: 1;
+  pointer-events: none;
+}
+.gallery-mosaic::before { left: 0;  background: linear-gradient(to right, #EADECB, rgba(234, 222, 203, 0)); }
+.gallery-mosaic::after  { right: 0; background: linear-gradient(to left,  #EADECB, rgba(234, 222, 203, 0)); }
 /* .gtrack holds two identical .gstrip copies and slides by exactly one strip
-   width, so the loop point is invisible. Distance + duration set by main.js. */
-.gtrack { display: flex; will-change: transform; }
+   width, so the loop point is invisible. Distance + duration set by main.js.
+   No will-change: the running animation promotes the layer by itself, and a
+   permanent hint forces iOS to keep a huge GPU buffer for the whole strip. */
+.gtrack { display: flex; }
 .gtrack.is-sliding { animation: gslide linear infinite; }
 @keyframes gslide {
   from { transform: translateX(0); }
@@ -421,7 +440,12 @@ section[id] { scroll-margin-top: 5rem; }
 /* Let visitors stop the wall to click a photo */
 .gallery-mosaic:hover .gtrack.is-sliding { animation-play-state: paused; }
 
-.gstrip { display: flex; gap: .85rem; align-items: flex-start; padding-right: .85rem; }
+/* flex: 0 0 auto is THE critical line: the two strip copies are flex items of
+   .gtrack, and without it Safari SHRINKS each strip box to the track's width
+   while the rigid fixed-width columns inside overflow it — so the second
+   strip's columns landed on top of the first's ("scrambled wall" on iPhone).
+   Chrome sizes the strips by their content, which hid the bug in testing. */
+.gstrip { display: flex; flex: 0 0 auto; gap: .85rem; align-items: flex-start; padding-right: .85rem; }
 .gcol { flex: 0 0 300px; display: flex; flex-direction: column; gap: .85rem; }
 .gframe {
   display: block; width: 100%; margin: 0; padding: 0;

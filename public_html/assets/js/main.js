@@ -123,10 +123,14 @@
       };
 
       build();
-      var rz;
+      var rz, lastBuildWidth = window.innerWidth;
       window.addEventListener('resize', function () {
         clearTimeout(rz);
         rz = setTimeout(function () {
+          // iOS Safari fires resize while scrolling (the address bar collapses,
+          // changing only the HEIGHT) — rebuild only when the width changed.
+          if (window.innerWidth === lastBuildWidth) return;
+          lastBuildWidth = window.innerWidth;
           // Put the original frames back in a flat list, then rebuild for the
           // new width (column width is responsive).
           gMosaic.innerHTML = '';
