@@ -76,6 +76,11 @@ function card($slug, $field, $fallback = '') {
 
   <!-- Custom styles -->
   <link rel="stylesheet" href="assets/css/styles.css" />
+
+  <?php $hero_image = setting('hero_image'); if ($hero_image !== ''): ?>
+  <!-- Hero photo uploaded in Admin -> Site Text (overrides the default in styles.css) -->
+  <style>.hero-bg { background-image: url('assets/img/hero/<?= h($hero_image) ?>'); }</style>
+  <?php endif; ?>
 </head>
 
 <body class="font-body bg-cream text-bark antialiased">

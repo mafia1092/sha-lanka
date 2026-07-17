@@ -1,10 +1,14 @@
 <?php
-// admin/content.php — edit every text block shown on the public website.
-// All blocks live in the site_content table; this page updates them in one form.
+// admin/content.php — edit the homepage hero photo + every text block shown
+// on the public website. Text blocks live in the site_content table; the hero
+// photo filename lives in settings.hero_image (file in assets/img/hero/).
 require_once __DIR__ . '/../sys/auth.php';
+require_once __DIR__ . '/../sys/images.php';
 
-$page_title = 'Site Text';
+$page_title = 'Site Content';
 $msg = ''; $err = '';
+
+$hero_dir = __DIR__ . '/../assets/img/hero';
 
 // Friendly headings for each section key (also sets the display order).
 $section_names = [
@@ -23,6 +27,45 @@ $section_names = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validateCsrfToken()) {
         $err = 'Session expired — please try again.';
+
+    // ---- Upload a new homepage hero photo ----
+    } elseif (($_POST['action'] ?? '') === 'hero_image') {
+        $file = $_FILES['hero'] ?? null;
+        if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            header('Location: content.php?err=nofile');
+            exit;
+        }
+        if (!is_dir($hero_dir)) {
+            @mkdir($hero_dir, 0755, true);
+        }
+        // A fresh filename every upload, so a browser or the Hostinger CDN can
+        // never show a stale cached hero photo.
+        $new_name = 'hero-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.jpg';
+        [$ok, $up_err] = img_process_hero($file, $hero_dir . '/' . $new_name);
+        if (!$ok) {
+            $_SESSION['hero_err'] = $up_err;
+            header('Location: content.php?err=upload');
+            exit;
+        }
+
+        $old_name = setting('hero_image');
+        $stmt = $conn->prepare(
+            "INSERT INTO settings (setting_key, setting_value) VALUES ('hero_image', ?)
+             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)"
+        );
+        $stmt->bind_param('s', $new_name);
+        $stmt->execute();
+        $stmt->close();
+
+        // Tidy up the photo we just replaced. The name pattern check means a
+        // tampered database value can never delete anything else.
+        if ($old_name !== '' && $old_name !== $new_name
+            && preg_match('/^hero-[0-9]{14}-[0-9a-f]{8}\.jpg$/', $old_name)) {
+            @unlink($hero_dir . '/' . $old_name);
+        }
+        header('Location: content.php?msg=hero');
+        exit;
+
     } elseif (isset($_POST['content']) && is_array($_POST['content'])) {
         // Update each submitted block. Only UPDATE existing keys — an unknown
         // key simply matches no row, so nothing new is ever inserted here.
@@ -41,10 +84,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Show the success banner after the redirect (short whitelisted code only).
+// Show the banner after the redirect (short whitelisted codes only).
 if (($_GET['msg'] ?? '') === 'saved') {
     $msg = 'All changes saved.';
+} elseif (($_GET['msg'] ?? '') === 'hero') {
+    $msg = 'New hero photo saved — it is live on the homepage now.';
 }
+if (($_GET['err'] ?? '') === 'nofile') {
+    $err = 'Please choose a photo first.';
+} elseif (($_GET['err'] ?? '') === 'upload') {
+    // The specific reason (e.g. the HEIC message) was stashed before redirect.
+    $err = $_SESSION['hero_err'] ?? 'Could not upload that photo.';
+    unset($_SESSION['hero_err']);
+}
+
+// Current hero photo (empty = still using the default from styles.css)
+$hero_image = setting('hero_image');
 
 // ---- Load every text block, grouped by section ----
 $sections = []; // section key => list of rows
@@ -67,7 +122,39 @@ include __DIR__ . '/inc/header.php';
   <div class="bg-red-100 border border-red-300 text-red-800 text-sm rounded px-4 py-3 mb-4"><?= h($err) ?></div>
 <?php endif; ?>
 
-<p class="text-sm text-gray-600 mb-6">These texts appear on the public website immediately after saving.</p>
+<p class="text-sm text-gray-600 mb-6">Everything here appears on the public website immediately after saving.</p>
+
+<!-- Homepage hero photo -->
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+  <h2 class="text-lg font-semibold mb-1">Homepage hero photo</h2>
+  <p class="text-sm text-gray-500 mb-4">
+    The big background photo behind &ldquo;Explore Sri Lanka, Your Way&rdquo;. Use a wide
+    landscape photo, at least 1600px across &mdash; it is resized automatically.
+    JPEG, PNG or WebP (iPhone HEIC photos are not supported: export as JPEG first).
+  </p>
+
+  <div class="flex flex-wrap items-start gap-6">
+    <div>
+      <?php if ($hero_image !== '' && is_file($hero_dir . '/' . $hero_image)): ?>
+        <img src="../assets/img/hero/<?= h($hero_image) ?>" alt="Current hero photo"
+             class="w-64 h-36 object-cover rounded border border-gray-200">
+        <p class="text-xs text-gray-400 mt-1">Current photo</p>
+      <?php else: ?>
+        <div class="w-64 h-36 rounded border border-dashed border-gray-300 flex items-center justify-center px-4 text-center text-xs text-gray-400">
+          Currently showing the default stock photo &mdash; upload your own to replace it.
+        </div>
+      <?php endif; ?>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
+      <?= csrfField() ?>
+      <input type="hidden" name="action" value="hero_image">
+      <input type="file" name="hero" accept="image/*" required
+             class="text-sm text-gray-700 file:mr-3 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-gray-100 file:text-sm hover:file:bg-gray-200">
+      <button type="submit" class="bg-brand text-white text-sm px-3 py-1.5 rounded hover:bg-brandglow">Upload new hero photo</button>
+    </form>
+  </div>
+</div>
 
 <?php if (!$sections): ?>
   <div class="bg-white rounded-lg shadow p-6 text-sm text-gray-500">No text blocks found in the database yet.</div>

@@ -154,6 +154,9 @@ INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
   ('business_whatsapp',      '94777488746'),
   ('business_address',       '137/4, St. Francis Road, Welihena, Kochchikade'),
   ('notify_email_on_inquiry','1'),
+  -- Homepage hero background: filename inside assets/img/hero/ (uploaded via
+  -- Admin -> Site Text). Empty = fall back to the default in styles.css.
+  ('hero_image',             ''),
   ('ip_salt',                '');
 
 -- Site content (current live wording, lifted from index.html / faq.html)

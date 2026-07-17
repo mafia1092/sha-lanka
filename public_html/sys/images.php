@@ -96,10 +96,12 @@ function img_process_gallery(array $file, $destDir, $fileBase) {
 }
 
 /**
- * Replace one service-card slide in place (assets/img/slides/<slug>/{1,2,3}.jpg).
- * Slides are single-size: max 1600px wide, quality 80.
+ * Process one uploaded photo into a single JPEG at $destPath, never wider
+ * than $maxWidth. Writes to a temp file and only swaps it in once the result
+ * is verified — a failed/partial write must never destroy the image that is
+ * live on the site right now.
  */
-function img_process_slide(array $file, $destPath) {
+function img_process_single(array $file, $destPath, $maxWidth = 1600, $quality = 80) {
     ini_set('memory_limit', '512M');
 
     [$ok, $err, $type] = img_validate($file);
@@ -108,11 +110,8 @@ function img_process_slide(array $file, $destPath) {
     $im = img_load($file['tmp_name'], $type);
     if (!$im) return [false, 'Could not read the image data. Try re-saving it as JPEG.'];
 
-    // Write to a temp file first and only replace the live slide once the new
-    // file is verified — a failed/partial write must never destroy the
-    // existing good image that is showing on the site right now.
     $tmp = $destPath . '.tmp';
-    $saved = img_save_resized($im, $tmp, 1600, 80);
+    $saved = img_save_resized($im, $tmp, $maxWidth, $quality);
     $info  = $saved ? @getimagesize($tmp) : false;
     if (!$saved || !$info || $info[0] < 1) {
         @unlink($tmp);
@@ -123,4 +122,20 @@ function img_process_slide(array $file, $destPath) {
         return [false, 'Could not replace the existing image (check folder permissions).'];
     }
     return [true, ''];
+}
+
+/**
+ * Replace one service-card slide in place (assets/img/slides/<slug>/{1,2,3}.jpg).
+ * Slides are single-size: max 1600px wide, quality 80.
+ */
+function img_process_slide(array $file, $destPath) {
+    return img_process_single($file, $destPath, 1600, 80);
+}
+
+/**
+ * The homepage hero background. Bigger than a slide because it fills the whole
+ * screen: max 1920px wide.
+ */
+function img_process_hero(array $file, $destPath) {
+    return img_process_single($file, $destPath, 1920, 82);
 }

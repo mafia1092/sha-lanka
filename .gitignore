@@ -12,6 +12,11 @@ node_modules/
 .env.local
 private/db.ini
 
+# Hero photos uploaded through the admin live on the SERVER, not in git
+# (same rule as admin-uploaded gallery images — never sync-delete them)
+public_html/assets/img/hero/*
+!public_html/assets/img/hero/.gitkeep
+
 # Editor
 .vscode/
 .idea/
