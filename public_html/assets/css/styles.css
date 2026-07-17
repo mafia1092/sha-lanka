@@ -578,6 +578,17 @@ a.contact-detail:hover {
 .footer-link { transition: color .2s ease; }
 .footer-link:hover { color: var(--brand); }
 
+/* ---------- Stop the page being draggable sideways ----------
+   AOS's "fade-left" reveal starts an element 100px to the RIGHT and only
+   slides it home once you scroll it into view. #carrier sits far down the
+   page, so it parked 100px off-screen for most of a visit and made the page
+   ~68px wider than the screen (a sideways wobble on phones).
+   These two sections are the only ones using fade-left.
+   overflow-x:clip, NOT hidden — `hidden` would turn the section into a
+   scroll container (which can break sticky/smooth scrolling); `clip` just
+   trims the overhang and leaves the animation intact. */
+#about, #carrier { overflow-x: clip; }
+
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   .hero-bg { animation: none; }
