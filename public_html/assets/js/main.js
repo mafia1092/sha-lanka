@@ -48,99 +48,99 @@
       setTimeout(function () { setInterval(advance, 5000); }, n * 700);
     });
 
-    /* ---- Gallery mosaic: balanced equal-height columns + running "pop" swap ---- */
+    /* ---- Gallery: full-bleed wall of photos sliding sideways, forever ---- */
     var gMosaic = document.getElementById('gallery-mosaic');
     if (gMosaic) {
-      var thumbUrl = function (b) { return 'assets/img/gallery/' + b + '.jpg'; };
       var largeUrl = function (b) { return 'assets/img/gallery/' + b + '-lg.jpg'; };
-      var rint = function (n) { return Math.floor(Math.random() * n); };
 
-      // Photo lists come from the database — index.php injects window.GALLERY.
-      // The hardcoded arrays below are only a fallback if that injection is missing.
-      var LAND = (window.GALLERY && window.GALLERY.land && window.GALLERY.land.length) ? window.GALLERY.land
-        : ['g01','g02','g03','g04','g05','g08','g09','g10','g11','g12','g13','g14','g15','g16','g18','g21','g22','g23','g33','g35','g36','g37','g38','g42'];
-      var PORT = (window.GALLERY && window.GALLERY.port && window.GALLERY.port.length) ? window.GALLERY.port
-        : ['g06','g07','g17','g19','g20','g24','g25','g26','g27','g28','g29','g30','g31','g32','g34','g39','g40','g41','g43','g44','g45'];
+      // How fast the wall drifts, in pixels per second. The loop duration is
+      // derived from this, so the speed feels the same no matter how many
+      // photos are in the gallery.
+      var SPEED = 60;
 
-      var gFrames = Array.prototype.slice.call(gMosaic.querySelectorAll('.gframe'));
-      var landFrames = gFrames.filter(function (f) { return f.dataset.orient !== 'port'; });
-      var portFrames = gFrames.filter(function (f) { return f.dataset.orient === 'port'; });
+      // index.php renders every active photo as a flat list of frames.
+      var allFrames = Array.prototype.slice.call(gMosaic.querySelectorAll('.gframe'));
+      var landFrames = allFrames.filter(function (f) { return f.dataset.orient !== 'port'; });
+      var portFrames = allFrames.filter(function (f) { return f.dataset.orient === 'port'; });
 
-      var usedLand = {}, usedPort = {};
-      gFrames.forEach(function (f) {
-        if (f.dataset.orient === 'port') usedPort[f.dataset.base] = true;
-        else usedLand[f.dataset.base] = true;
-      });
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      // Lay the frames into N equal-composition columns: every column gets the same
-      // number of landscape + portrait frames, so all columns end at the SAME height
-      // (flat bottom, no ragged gaps). Responsive: 4 columns wide, 2 when narrow.
-      var currentCols = 0;
-      var layout = function () {
-        var cols = window.innerWidth >= 900 ? 4 : 2;
-        if (cols === currentCols) return;
-        currentCols = cols;
-        var perL = Math.floor(landFrames.length / cols);
-        var perP = Math.floor(portFrames.length / cols);
-        gMosaic.innerHTML = '';
-        var li = 0, pi = 0;
+      var build = function () {
+        // Columns of 2 landscape + 2 portrait. Identical composition means
+        // every column is the same height, so the wall has a flat top and
+        // bottom. Any leftover photos beyond a whole column aren't shown.
+        var cols = Math.min(Math.floor(landFrames.length / 2), Math.floor(portFrames.length / 2));
+        if (cols < 1) return;
+
+        var baseCols = [];
         for (var c = 0; c < cols; c++) {
           var col = document.createElement('div');
           col.className = 'gcol';
-          var cl = landFrames.slice(li, li + perL); li += perL;
-          var cp = portFrames.slice(pi, pi + perP); pi += perP;
-          var maxk = Math.max(cl.length, cp.length);
-          for (var k = 0; k < maxk; k++) {           // interleave, flip lead per column
-            var a = (c % 2 === 0) ? cl[k] : cp[k];
-            var b = (c % 2 === 0) ? cp[k] : cl[k];
-            if (a) col.appendChild(a);
-            if (b) col.appendChild(b);
-          }
-          gMosaic.appendChild(col);
+          var cl = landFrames.slice(c * 2, c * 2 + 2);
+          var cp = portFrames.slice(c * 2, c * 2 + 2);
+          // Flip which orientation leads each column so the wall isn't striped.
+          var order = (c % 2 === 0) ? [cl[0], cp[0], cl[1], cp[1]] : [cp[0], cl[0], cp[1], cl[1]];
+          order.forEach(function (f) { if (f) col.appendChild(f); });
+          baseCols.push(col);
+        }
+
+        var strip = document.createElement('div');
+        strip.className = 'gstrip';
+        strip.appendChild(baseCols[0]);
+        gMosaic.innerHTML = '';
+        gMosaic.appendChild(strip);
+        // Measure one real column (width comes from CSS, which is responsive).
+        var colW = baseCols[0].getBoundingClientRect().width;
+        var gap = parseFloat(getComputedStyle(strip).columnGap) || 0;
+        var step = colW + gap;
+        strip.innerHTML = '';
+
+        // Repeat the set until it is wider than the screen. Without this, a
+        // strip narrower than the viewport would show a gap at the wrap.
+        var repeats = Math.max(1, Math.ceil((gMosaic.getBoundingClientRect().width * 1.15) / (cols * step)));
+        for (var r = 0; r < repeats; r++) {
+          baseCols.forEach(function (col) {
+            strip.appendChild(r === 0 ? col : col.cloneNode(true));
+          });
+        }
+
+        var setWidth = strip.children.length * step;
+
+        // Clone the whole strip once and slide by exactly one set width: the
+        // two halves are identical, so the wrap is invisible.
+        var track = document.createElement('div');
+        track.className = 'gtrack';
+        track.appendChild(strip);
+        track.appendChild(strip.cloneNode(true));
+        gMosaic.innerHTML = '';
+        gMosaic.appendChild(track);
+
+        if (!reduce) {
+          track.style.setProperty('--slide-distance', '-' + setWidth + 'px');
+          track.style.animationDuration = (setWidth / SPEED) + 's';
+          track.classList.add('is-sliding');
         }
       };
-      layout();
+
+      build();
       var rz;
-      window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(layout, 150); });
-
-      var freeFrom = function (pool, used) {
-        var n, guard = 0;
-        do { n = pool[rint(pool.length)]; guard++; } while (used[n] && guard < 200);
-        // null = every photo of this orientation is already on screen
-        // (possible at the 8-photo minimum) — caller skips the swap.
-        return used[n] ? null : n;
-      };
-
-      // Swap a frame to a fresh photo of ITS OWN orientation, with a soft fade + pop
-      var swapFrame = function (f) {
-        var isPort = f.dataset.orient === 'port';
-        var pool = isPort ? PORT : LAND;
-        var used = isPort ? usedPort : usedLand;
-        var oldB = f.dataset.base, nb = freeFrom(pool, used);
-        if (!nb || nb === oldB) return;
-        used[oldB] = false; used[nb] = true;
-        var im = f.querySelector('img');
-        im.style.opacity = '0'; im.style.transform = 'scale(.96)';
-        setTimeout(function () {
-          im.src = thumbUrl(nb); f.dataset.base = nb;
-          im.style.opacity = '1'; im.style.transform = 'none';
-        }, 280);
-      };
-
-      // Click a frame -> open the full original in the lightbox
-      gFrames.forEach(function (f) {
-        f.addEventListener('click', function () {
-          if (window.GLightbox) {
-            GLightbox({ elements: [{ href: largeUrl(f.dataset.base), type: 'image' }] }).open();
-          }
-        });
+      window.addEventListener('resize', function () {
+        clearTimeout(rz);
+        rz = setTimeout(function () {
+          // Put the original frames back in a flat list, then rebuild for the
+          // new width (column width is responsive).
+          gMosaic.innerHTML = '';
+          allFrames.forEach(function (f) { gMosaic.appendChild(f); });
+          build();
+        }, 200);
       });
 
-      // Running animation: every ~2.2s a random frame pops to a new same-orientation photo
-      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (!reduce) {
-        setInterval(function () { swapFrame(gFrames[rint(gFrames.length)]); }, 2200);
-      }
+      // One delegated listener, so cloned frames open the lightbox too.
+      gMosaic.addEventListener('click', function (e) {
+        var f = e.target.closest ? e.target.closest('.gframe') : null;
+        if (!f || !window.GLightbox) return;
+        GLightbox({ elements: [{ href: largeUrl(f.dataset.base), type: 'image' }] }).open();
+      });
     }
 
     /* ---- Sticky header state ---- */

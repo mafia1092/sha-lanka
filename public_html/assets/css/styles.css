@@ -397,8 +397,32 @@ section[id] { scroll-margin-top: 5rem; }
 }
 
 /* ---------- Gallery mosaic (orientation-matched frames, balanced equal-height columns) ---------- */
-.gallery-mosaic { display: flex; gap: .85rem; align-items: flex-start; }
-.gcol { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: .85rem; }
+/* Full-bleed: the mosaic sits outside the centred container in index.php, so
+   width:100% already spans the page — no 100vw (which counts the scrollbar
+   and would push the page sideways). The heading stays in the normal column. */
+.gallery-mosaic {
+  width: 100%;
+  overflow: hidden;
+  /* The strip is far wider than the screen; paint containment tells the
+     browser nothing renders outside this box (correct clipping + cheaper
+     painting for the always-running slide). */
+  contain: paint;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%);
+          mask-image: linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%);
+}
+/* .gtrack holds two identical .gstrip copies and slides by exactly one strip
+   width, so the loop point is invisible. Distance + duration set by main.js. */
+.gtrack { display: flex; will-change: transform; }
+.gtrack.is-sliding { animation: gslide linear infinite; }
+@keyframes gslide {
+  from { transform: translateX(0); }
+  to   { transform: translateX(var(--slide-distance, -100%)); }
+}
+/* Let visitors stop the wall to click a photo */
+.gallery-mosaic:hover .gtrack.is-sliding { animation-play-state: paused; }
+
+.gstrip { display: flex; gap: .85rem; align-items: flex-start; padding-right: .85rem; }
+.gcol { flex: 0 0 300px; display: flex; flex-direction: column; gap: .85rem; }
 .gframe {
   display: block; width: 100%; margin: 0; padding: 0;
   border: 0; background: #efe7d7; border-radius: 12px; overflow: hidden;
@@ -407,8 +431,18 @@ section[id] { scroll-margin-top: 5rem; }
 }
 .gframe.landscape { aspect-ratio: 3 / 2; }
 .gframe.portrait  { aspect-ratio: 3 / 4; }
-.gframe img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .5s ease, transform .5s ease; }
+/* Ken Burns: a slow drift-zoom, staggered so they don't all pulse together */
+.gframe img { width: 100%; height: 100%; object-fit: cover; display: block; animation: gkenburns 16s ease-in-out infinite alternate; }
+.gframe:nth-child(2n) img { animation-duration: 19s; animation-delay: -4s; }
+.gframe:nth-child(3n) img { animation-duration: 22s; animation-delay: -9s; }
+@keyframes gkenburns {
+  from { transform: scale(1); }
+  to   { transform: scale(1.12); }
+}
 .gframe:hover { box-shadow: 0 10px 26px -8px rgba(0,0,0,.45); }
+@media (max-width: 899px) {
+  .gcol { flex: 0 0 165px; }
+}
 
 /* ---------- Footer partner-site logos (compact single line) ---------- */
 .partner-logos { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1.75rem; }
@@ -550,6 +584,8 @@ a.contact-detail:hover {
 @media (prefers-reduced-motion: reduce) {
   .hero-bg { animation: none; }
   .band-bg { background-attachment: scroll; }
+  .gtrack, .gtrack.is-sliding { animation: none; }
+  .gframe img { animation: none; }
   * { scroll-behavior: auto !important; }
 }
 

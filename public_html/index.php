@@ -23,6 +23,14 @@ function card($slug, $field, $fallback = '') {
     // Empty DB value falls back too (e.g. a cleared link keeps the original)
     return h(($v === '' || $v === null) ? $fallback : $v);
 }
+
+// Append the file's last-modified time to CSS/JS URLs. After a deploy the URL
+// changes, so returning visitors get the new file instead of a cached old one
+// (mixing new HTML with stale CSS/JS breaks the layout).
+function asset($path) {
+    $t = @filemtime(__DIR__ . '/' . $path);
+    return h($path . ($t ? '?v=' . $t : ''));
+}
 ?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
@@ -75,7 +83,7 @@ function card($slug, $field, $fallback = '') {
   </script>
 
   <!-- Custom styles -->
-  <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="stylesheet" href="<?= asset('assets/css/styles.css') ?>" />
 
   <?php $hero_image = setting('hero_image'); if ($hero_image !== ''): ?>
   <!-- Hero photo uploaded in Admin -> Site Text (overrides the default in styles.css) -->
@@ -98,10 +106,10 @@ function card($slug, $field, $fallback = '') {
         <!-- Desktop nav -->
         <ul class="hidden lg:flex items-center gap-8 font-display tracking-wide text-[15px] uppercase">
           <li><a href="#about" class="nav-link">About</a></li>
+          <li><a href="#gallery" class="nav-link">Gallery</a></li>
           <li><a href="#fleet" class="nav-link">Fleet</a></li>
           <li><a href="#tours" class="nav-link">Tours</a></li>
           <li><a href="#carrier" class="nav-link">Car Carrier</a></li>
-          <li><a href="#gallery" class="nav-link">Gallery</a></li>
           <li><a href="#contact" class="nav-link">Contact</a></li>
         </ul>
 
@@ -117,10 +125,10 @@ function card($slug, $field, $fallback = '') {
     <div id="mobile-menu" class="lg:hidden hidden bg-espresso/98 backdrop-blur border-t border-white/10">
       <ul class="px-6 py-4 space-y-1 font-display tracking-wide uppercase text-cream">
         <li><a href="#about" class="mobile-link">About</a></li>
+        <li><a href="#gallery" class="mobile-link">Gallery</a></li>
         <li><a href="#fleet" class="mobile-link">Fleet</a></li>
         <li><a href="#tours" class="mobile-link">Tours</a></li>
         <li><a href="#carrier" class="mobile-link">Car Carrier</a></li>
-        <li><a href="#gallery" class="mobile-link">Gallery</a></li>
         <li><a href="#contact" class="mobile-link">Contact</a></li>
       </ul>
     </div>
@@ -205,6 +213,36 @@ function card($slug, $field, $fallback = '') {
           </p>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ GALLERY ============ -->
+  <section id="gallery" class="py-24 bg-sand/40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-16" data-aos="fade-up">
+        <p class="eyebrow">In the Wild</p>
+        <h2 class="section-title">Gallery</h2>
+        <span class="title-underline"></span>
+        <p class="section-sub"><?= t('gallery_sub') ?></p>
+      </div>
+    </div>
+
+    <!-- Sits OUTSIDE the centred container so the wall runs edge to edge.
+         (Deliberately not width:100vw — that includes the scrollbar and
+         pushes the page sideways.) Every active photo is rendered as a flat
+         list; main.js groups them into columns of 2 landscape + 2 portrait,
+         repeats them to fill the screen, then clones the strip for a
+         seamless sideways loop. -->
+    <div class="gallery-mosaic" id="gallery-mosaic" data-aos="fade-up">
+      <?php foreach (['land', 'port'] as $o):
+        $shape = $o === 'port' ? 'portrait' : 'landscape';
+        foreach ($gallery[$o] as $i => $base):
+          // First few of each orientation load eagerly (they fill the first
+          // couple of columns); the rest arrive as they slide into view.
+          $lazy = $i < 4 ? '' : ' loading="lazy"';
+      ?>
+      <button class="gframe <?= $shape ?>" data-orient="<?= $o ?>" data-base="<?= h($base) ?>" type="button" aria-label="View photo full size"><img src="assets/img/gallery/<?= h($base) ?>.jpg" alt="Sha Lanka Travels gallery photo"<?= $lazy ?> /></button>
+      <?php endforeach; endforeach; ?>
     </div>
   </section>
 
@@ -419,32 +457,6 @@ function card($slug, $field, $fallback = '') {
     </div>
   </section>
 
-  <!-- ============ GALLERY ============ -->
-  <section id="gallery" class="py-24 bg-sand/40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center max-w-2xl mx-auto mb-16" data-aos="fade-up">
-        <p class="eyebrow">In the Wild</p>
-        <h2 class="section-title">Gallery</h2>
-        <span class="title-underline"></span>
-        <p class="section-sub"><?= t('gallery_sub') ?></p>
-      </div>
-
-      <div class="gallery-mosaic" id="gallery-mosaic" data-aos="fade-up">
-        <?php
-          // 16 frames (8 landscape + 8 portrait, interleaved) filled with the
-          // first photos of each orientation; main.js animates the rest in.
-          $frameCount = min(8, count($gallery['land']), count($gallery['port']));
-          for ($i = 0; $i < $frameCount; $i++):
-            foreach (['land', 'port'] as $o):
-              $base  = $gallery[$o][$i];
-              $shape = $o === 'port' ? 'portrait' : 'landscape';
-        ?>
-        <button class="gframe <?= $shape ?>" data-orient="<?= $o ?>" data-base="<?= h($base) ?>" type="button" aria-label="View photo full size"><img src="assets/img/gallery/<?= h($base) ?>.jpg" alt="Sha Lanka Travels gallery photo" loading="lazy" /></button>
-        <?php endforeach; endfor; ?>
-      </div>
-    </div>
-  </section>
-
   <!-- ============ CONTACT ============ -->
   <section id="contact" class="py-24 bg-espresso text-cream">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -564,10 +576,10 @@ function card($slug, $field, $fallback = '') {
         <div>
           <h4 class="footer-h">Explore</h4>
           <ul class="space-y-2 font-light">
+            <li><a href="#gallery" class="footer-link">Gallery</a></li>
             <li><a href="#fleet" class="footer-link">Rental Fleet</a></li>
             <li><a href="#tours" class="footer-link">Guided Tours</a></li>
             <li><a href="#carrier" class="footer-link">Car Carrier</a></li>
-            <li><a href="#gallery" class="footer-link">Gallery</a></li>
           </ul>
         </div>
         <div>
@@ -597,15 +609,8 @@ function card($slug, $field, $fallback = '') {
   </footer>
 
   <!-- Scripts -->
-  <script>
-    // Gallery photo lists (from the database) for the mosaic animation
-    window.GALLERY = {
-      land: <?= json_encode($gallery['land']) ?>,
-      port: <?= json_encode($gallery['port']) ?>
-    };
-  </script>
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js"></script>
-  <script src="assets/js/main.js"></script>
+  <script src="<?= asset('assets/js/main.js') ?>"></script>
 </body>
 </html>

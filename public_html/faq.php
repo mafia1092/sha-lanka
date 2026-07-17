@@ -9,6 +9,12 @@ $res = $conn->query("SELECT question, answer FROM faq_items WHERE is_active = 1 
 while ($row = $res->fetch_assoc()) {
     $faq_items[] = $row;
 }
+
+// Cache-busting for CSS/JS — see the same helper in index.php.
+function asset($path) {
+    $t = @filemtime(__DIR__ . '/' . $path);
+    return h($path . ($t ? '?v=' . $t : ''));
+}
 ?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
@@ -58,7 +64,7 @@ while ($row = $res->fetch_assoc()) {
   </script>
 
   <!-- Custom styles -->
-  <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="stylesheet" href="<?= asset('assets/css/styles.css') ?>" />
 </head>
 
 <body class="font-body bg-cream text-bark antialiased">
@@ -175,6 +181,6 @@ while ($row = $res->fetch_assoc()) {
 
   <!-- Scripts -->
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-  <script src="assets/js/main.js"></script>
+  <script src="<?= asset('assets/js/main.js') ?>"></script>
 </body>
 </html>

@@ -53,8 +53,20 @@ cd public_html && for f in $(find . -name '*.php' -not -path './mail/*'); do php
   decode iPhone HEIC — the admin rejects it with a message; export as JPEG first.
 - **Gallery mosaic needs ≥8 active photos per orientation** (land/port);
   the admin blocks deletes/deactivations that would break that.
+- **Gallery = full-bleed wall sliding sideways forever** (sits under About).
+  `index.php` renders every active photo flat; `main.js` builds columns of
+  2 land + 2 port (equal height → flat top/bottom), repeats them until wider
+  than the screen, then clones the strip and slides it by exactly one strip
+  width so the loop is seamless. Speed is `SPEED` px/sec in `main.js`, not a
+  fixed duration. `.gallery-mosaic` needs `contain: paint` (correct clipping
+  of the over-wide strip). Photos beyond a whole column aren't shown — with
+  24 land / 21 port that's 10 columns / 40 photos.
 - Do not re-introduce `new Image().onload` preloading in the gallery
-  animation (cached images never fire onload → animation freezes).
+  (cached images never fire onload → animation freezes). The old per-photo
+  swap animation was removed — the slide replaces it.
+- **CSS/JS are cache-busted** via `asset()` (`?v=filemtime`) in `index.php` /
+  `faq.php`. Without it, returning visitors mix new HTML with stale cached
+  CSS/JS and the layout breaks. Keep new asset links going through `asset()`.
 
 ## Production (LIVE since 2026-07-15)
 - **URL:** https://shalankatravels.com — Hostinger shared hosting, SAME
