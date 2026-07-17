@@ -5,6 +5,19 @@ RewriteEngine On
 RewriteCond %{HTTPS} !=on
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+# Versioned assets: styles.<timestamp>.css -> styles.css
+# (see asset() in sys/helpers.php — the version must be in the FILENAME
+# because the Hostinger CDN ignores query strings when caching)
+RewriteRule ^assets/(css|js)/([A-Za-z0-9_-]+)\.[0-9]{8,}\.(css|js)$ assets/$1/$2.$3 [L]
+
+# CSS/JS: short cache (5 min) so deploys reach CDN edges and browsers fast.
+# The versioned filenames above do the long-term caching work.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(css|js)$">
+    Header set Cache-Control "public, max-age=300"
+  </FilesMatch>
+</IfModule>
+
 # Never serve dotfiles
 <FilesMatch "^\.">
   Require all denied

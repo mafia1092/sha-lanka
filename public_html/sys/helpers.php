@@ -104,3 +104,19 @@ function device_type_from_ua($ua) {
 function is_bot_ua($ua) {
     return (bool)preg_match('/bot|crawl|spider|slurp|preview|curl|wget|monitor|lighthouse|headless/i', $ua);
 }
+
+// Versioned URL for a CSS/JS file, so browsers and the CDN always fetch the
+// current version after a deploy. The version goes IN THE FILENAME
+// (styles.<mtime>.css) because Hostinger's CDN ignores query strings when
+// caching — a ?v= change never busts its edges, which kept serving week-old
+// CSS after deploys (this broke the site on phones). An .htaccess rewrite
+// maps the versioned name back to the real file. The local dev server
+// (php -S) ignores .htaccess, so there we fall back to the ?v= query style.
+function asset($path) {
+    $t = @filemtime(dirname(__DIR__) . '/' . $path);
+    if (!$t) return h($path);
+    if (PHP_SAPI === 'cli-server') {
+        return h($path . '?v=' . $t);
+    }
+    return h(preg_replace('/\.(css|js)$/', '.' . $t . '.$1', $path));
+}

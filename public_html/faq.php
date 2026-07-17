@@ -10,11 +10,7 @@ while ($row = $res->fetch_assoc()) {
     $faq_items[] = $row;
 }
 
-// Cache-busting for CSS/JS — see the same helper in index.php.
-function asset($path) {
-    $t = @filemtime(__DIR__ . '/' . $path);
-    return h($path . ($t ? '?v=' . $t : ''));
-}
+// (asset() — versioned CSS/JS URLs — lives in sys/helpers.php)
 ?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">

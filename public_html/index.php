@@ -24,13 +24,7 @@ function card($slug, $field, $fallback = '') {
     return h(($v === '' || $v === null) ? $fallback : $v);
 }
 
-// Append the file's last-modified time to CSS/JS URLs. After a deploy the URL
-// changes, so returning visitors get the new file instead of a cached old one
-// (mixing new HTML with stale CSS/JS breaks the layout).
-function asset($path) {
-    $t = @filemtime(__DIR__ . '/' . $path);
-    return h($path . ($t ? '?v=' . $t : ''));
-}
+// (asset() — versioned CSS/JS URLs — now lives in sys/helpers.php)
 ?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
@@ -233,7 +227,10 @@ function asset($path) {
          list; main.js groups them into columns of 2 landscape + 2 portrait,
          repeats them to fill the screen, then clones the strip for a
          seamless sideways loop. -->
-    <div class="gallery-mosaic" id="gallery-mosaic" data-aos="fade-up">
+    <!-- No data-aos here: AOS animates a transform on the element, and a
+         transformed/masked container around the sliding track triggers the
+         iOS scramble bug (the heading above keeps its own fade-up). -->
+    <div class="gallery-mosaic" id="gallery-mosaic">
       <?php foreach (['land', 'port'] as $o):
         $shape = $o === 'port' ? 'portrait' : 'landscape';
         foreach ($gallery[$o] as $i => $base):
