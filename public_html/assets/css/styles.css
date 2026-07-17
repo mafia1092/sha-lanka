@@ -431,14 +431,12 @@ section[id] { scroll-margin-top: 5rem; }
 }
 .gframe.landscape { aspect-ratio: 3 / 2; }
 .gframe.portrait  { aspect-ratio: 3 / 4; }
-/* Ken Burns: a slow drift-zoom, staggered so they don't all pulse together */
-.gframe img { width: 100%; height: 100%; object-fit: cover; display: block; animation: gkenburns 16s ease-in-out infinite alternate; }
-.gframe:nth-child(2n) img { animation-duration: 19s; animation-delay: -4s; }
-.gframe:nth-child(3n) img { animation-duration: 22s; animation-delay: -9s; }
-@keyframes gkenburns {
-  from { transform: scale(1); }
-  to   { transform: scale(1.12); }
-}
+/* No zoom/transform on the photo. A scaled photo overflows its frame, and
+   Safari does NOT clip a transformed child inside a rounded, overflow-hidden
+   box — on iOS every photo bled over its neighbours and the gaps vanished.
+   The wall already slides, so the zoom was redundant motion anyway (and it
+   put ~80 animating layers on the phone's GPU). */
+.gframe img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .gframe:hover { box-shadow: 0 10px 26px -8px rgba(0,0,0,.45); }
 @media (max-width: 899px) {
   .gcol { flex: 0 0 165px; }
@@ -585,7 +583,6 @@ a.contact-detail:hover {
   .hero-bg { animation: none; }
   .band-bg { background-attachment: scroll; }
   .gtrack, .gtrack.is-sliding { animation: none; }
-  .gframe img { animation: none; }
   * { scroll-behavior: auto !important; }
 }
 
