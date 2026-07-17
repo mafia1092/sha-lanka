@@ -41,14 +41,16 @@ cd public_html && for f in $(find . -name '*.php' -not -path './mail/*'); do php
   one-time "create first admin" form while the table is empty. Do this
   immediately after importing the schema on a new environment.
 - **Content lives in the DB + uploaded files, not git:** after go-live,
-  gallery uploads land in `assets/img/gallery/` on the SERVER. When
-  redeploying code, never sync-delete that folder, and remember backups
-  must cover the database.
+  admin uploads land on the SERVER — gallery in `assets/img/gallery/`, the
+  homepage hero in `assets/img/hero/` (gitignored), service slides in
+  `assets/img/slides/<slug>/`. When redeploying code, never sync-delete
+  those folders, and remember backups must cover the database.
 - **Escaping:** every dynamic value echoed into HTML goes through `h()`;
   every query with user input uses prepared statements.
-- **Images:** GD pipeline in `sys/images.php` (thumb ≤700w q72 +
-  `-lg` ≤1600w q80). GD cannot decode iPhone HEIC — the admin rejects it
-  with a message; export as JPEG first.
+- **Images:** GD pipeline in `sys/images.php` — gallery (thumb ≤700w q72 +
+  `-lg` ≤1600w q80), service slides (≤1600w q80), homepage hero (≤1920w q82,
+  filename in `settings.hero_image`, uploaded via Admin → Content). GD cannot
+  decode iPhone HEIC — the admin rejects it with a message; export as JPEG first.
 - **Gallery mosaic needs ≥8 active photos per orientation** (land/port);
   the admin blocks deletes/deactivations that would break that.
 - Do not re-introduce `new Image().onload` preloading in the gallery
