@@ -437,8 +437,13 @@ section[id] { scroll-margin-top: 5rem; }
   from { transform: translateX(0); }
   to   { transform: translateX(var(--slide-distance, -100%)); }
 }
-/* Let visitors stop the wall to click a photo */
-.gallery-mosaic:hover .gtrack.is-sliding { animation-play-state: paused; }
+/* Pause on hover so mouse users can click a photo — but ONLY on devices with
+   a real pointer. On a touch phone a tap sticks the :hover state, which froze
+   the slide indefinitely and looked like the loop had "ended". @media
+   (hover: hover) keeps the pause on desktop and never applies it on touch. */
+@media (hover: hover) and (pointer: fine) {
+  .gallery-mosaic:hover .gtrack.is-sliding { animation-play-state: paused; }
+}
 
 /* flex: 0 0 auto is THE critical line: the two strip copies are flex items of
    .gtrack, and without it Safari SHRINKS each strip box to the track's width
