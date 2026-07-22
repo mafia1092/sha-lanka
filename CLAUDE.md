@@ -64,6 +64,12 @@ cd public_html && for f in $(find . -name '*.php' -not -path './mail/*'); do php
 - Do not re-introduce `new Image().onload` preloading in the gallery
   (cached images never fire onload → animation freezes). The old per-photo
   swap animation was removed — the slide replaces it.
+- **`.gcol` MUST keep `min-width: 0` (+ `max-width` = its flex-basis).**
+  Without it, WebKit floors each column at the photos' intrinsic width
+  (700px thumbs) once images load — columns balloon 165→700px, the wall
+  outgrows the slide distance and the loop runs off the end (iPhone bug,
+  invisible in Chrome). `gtest.php` (in repo) is the on-device harness that
+  proves the loop: open `/gtest.php?fast=1` — HUD must say SEAMLESS.
 - **CSS/JS are cache-busted** via `asset()` (`?v=filemtime`) in `index.php` /
   `faq.php`. Without it, returning visitors mix new HTML with stale cached
   CSS/JS and the layout breaks. Keep new asset links going through `asset()`.

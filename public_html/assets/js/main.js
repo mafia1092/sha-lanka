@@ -104,10 +104,10 @@
           });
         }
 
-        var setWidth = strip.children.length * step;
-
-        // Clone the whole strip once and slide by exactly one set width: the
-        // two halves are identical, so the wrap is invisible.
+        // Clone the whole strip once. The two halves are identical, and the CSS
+        // slides the track by exactly 50% (= one copy), so the wrap is seamless
+        // WITHOUT any measured pixel distance — that measurement came out a few
+        // px off on iOS and made the wall overshoot into empty space.
         var track = document.createElement('div');
         track.className = 'gtrack';
         track.appendChild(strip);
@@ -116,8 +116,11 @@
         gMosaic.appendChild(track);
 
         if (!reduce) {
-          track.style.setProperty('--slide-distance', '-' + setWidth + 'px');
-          track.style.animationDuration = (setWidth / SPEED) + 's';
+          // Only the DURATION uses a measured width (one copy). If it is a touch
+          // off, the wall is merely a hair faster/slower — the loop stays
+          // seamless because the distance is the CSS -50%, not this number.
+          var oneCopyWidth = track.getBoundingClientRect().width / 2;
+          track.style.animationDuration = (oneCopyWidth / SPEED) + 's';
           track.classList.add('is-sliding');
         }
       };

@@ -427,15 +427,19 @@ section[id] { scroll-margin-top: 5rem; }
 }
 .gallery-mosaic::before { left: 0;  background: linear-gradient(to right, #EADECB, rgba(234, 222, 203, 0)); }
 .gallery-mosaic::after  { right: 0; background: linear-gradient(to left,  #EADECB, rgba(234, 222, 203, 0)); }
-/* .gtrack holds two identical .gstrip copies and slides by exactly one strip
-   width, so the loop point is invisible. Distance + duration set by main.js.
-   No will-change: the running animation promotes the layer by itself, and a
-   permanent hint forces iOS to keep a huge GPU buffer for the whole strip. */
-.gtrack { display: flex; }
+/* .gtrack holds two identical .gstrip copies and slides by exactly 50%, which
+   is ALWAYS exactly one copy — so the loop is seamless with no measured pixel
+   distance to get wrong. That matters: a JS-measured distance came out a few
+   px off on iOS, so the slide overshot the last photo and showed empty space
+   at the wrap (the wall "didn't link back to the start"). width:max-content
+   makes the track size to its content (both copies), so -50% resolves to one
+   copy exactly. No will-change: the running animation promotes the layer by
+   itself, and a permanent hint forces iOS to keep a huge GPU buffer. */
+.gtrack { display: flex; width: max-content; }
 .gtrack.is-sliding { animation: gslide linear infinite; }
 @keyframes gslide {
   from { transform: translateX(0); }
-  to   { transform: translateX(var(--slide-distance, -100%)); }
+  to   { transform: translateX(-50%); }
 }
 /* Pause on hover so mouse users can click a photo — but ONLY on devices with
    a real pointer. On a touch phone a tap sticks the :hover state, which froze
@@ -451,7 +455,13 @@ section[id] { scroll-margin-top: 5rem; }
    strip's columns landed on top of the first's ("scrambled wall" on iPhone).
    Chrome sizes the strips by their content, which hid the bug in testing. */
 .gstrip { display: flex; flex: 0 0 auto; gap: .85rem; align-items: flex-start; padding-right: .85rem; }
-.gcol { flex: 0 0 300px; display: flex; flex-direction: column; gap: .85rem; }
+/* min-width:0 + max-width are CRITICAL: a flex item's default min-width:auto
+   floors it at its content's natural size, and WebKit counts the photos'
+   intrinsic width (700px thumbnails) — so once images loaded, every 300/165px
+   column silently ballooned to ~700px. The wall then outgrew every slide
+   distance and the loop ran off the end into empty space (iPhone bug).
+   Chrome doesn't inflate, which is why this only broke on Safari. */
+.gcol { flex: 0 0 300px; min-width: 0; max-width: 300px; display: flex; flex-direction: column; gap: .85rem; }
 .gframe {
   display: block; width: 100%; margin: 0; padding: 0;
   border: 0; background: #efe7d7; border-radius: 12px; overflow: hidden;
@@ -468,7 +478,7 @@ section[id] { scroll-margin-top: 5rem; }
 .gframe img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .gframe:hover { box-shadow: 0 10px 26px -8px rgba(0,0,0,.45); }
 @media (max-width: 899px) {
-  .gcol { flex: 0 0 165px; }
+  .gcol { flex: 0 0 165px; max-width: 165px; }
 }
 
 /* ---------- Footer partner-site logos (compact single line) ---------- */
