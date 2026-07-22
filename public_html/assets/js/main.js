@@ -48,81 +48,76 @@
       setTimeout(function () { setInterval(advance, 5000); }, n * 700);
     });
 
-    /* ---- Gallery: full-bleed wall of photos sliding sideways, forever ---- */
+    /* ---- Gallery: TWO full-bleed rows of photos sliding sideways, forever ----
+       Every photo has a fixed CSS size (height per row, width per orientation),
+       so nothing the browser loads can ever change the wall's geometry — that
+       invariant is what finally made the loop stable on iOS. Each row holds two
+       identical copies of its photo sequence and the CSS slides it by exactly
+       -50% (= one copy), so the wrap is seamless by construction. */
     var gMosaic = document.getElementById('gallery-mosaic');
     if (gMosaic) {
       var largeUrl = function (b) { return 'assets/img/gallery/' + b + '-lg.jpg'; };
 
-      // How fast the wall drifts, in pixels per second. The loop duration is
-      // derived from this, so the speed feels the same no matter how many
-      // photos are in the gallery.
+      // Drift speed in pixels per second (used only for the DURATION — the loop
+      // distance is the CSS -50%, so a slightly-off measurement can never
+      // break the wrap, it only nudges the speed).
       var SPEED = 60;
 
       // index.php renders every active photo as a flat list of frames.
       var allFrames = Array.prototype.slice.call(gMosaic.querySelectorAll('.gframe'));
-      var landFrames = allFrames.filter(function (f) { return f.dataset.orient !== 'port'; });
-      var portFrames = allFrames.filter(function (f) { return f.dataset.orient === 'port'; });
 
       var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       var build = function () {
-        // Columns of 2 landscape + 2 portrait. Identical composition means
-        // every column is the same height, so the wall has a flat top and
-        // bottom. Any leftover photos beyond a whole column aren't shown.
-        var cols = Math.min(Math.floor(landFrames.length / 2), Math.floor(portFrames.length / 2));
-        if (cols < 1) return;
+        if (!allFrames.length) return;
 
-        var baseCols = [];
-        for (var c = 0; c < cols; c++) {
-          var col = document.createElement('div');
-          col.className = 'gcol';
-          var cl = landFrames.slice(c * 2, c * 2 + 2);
-          var cp = portFrames.slice(c * 2, c * 2 + 2);
-          // Flip which orientation leads each column so the wall isn't striped.
-          var order = (c % 2 === 0) ? [cl[0], cp[0], cl[1], cp[1]] : [cp[0], cl[0], cp[1], cl[1]];
-          order.forEach(function (f) { if (f) col.appendChild(f); });
-          baseCols.push(col);
+        // Distribute photos into 2 rows so each row mixes wide (landscape) and
+        // narrow (portrait) frames: zip the two orientation lists together,
+        // then deal them out in pairs — row 1 gets pair 1, row 2 gets pair 2,
+        // and so on. ALL photos are shown.
+        var land = allFrames.filter(function (f) { return f.dataset.orient !== 'port'; });
+        var port = allFrames.filter(function (f) { return f.dataset.orient === 'port'; });
+        var zipped = [];
+        var n = Math.max(land.length, port.length);
+        for (var i = 0; i < n; i++) {
+          if (land[i]) zipped.push(land[i]);
+          if (port[i]) zipped.push(port[i]);
         }
+        var rowsFrames = [[], []];
+        zipped.forEach(function (f, j) { rowsFrames[Math.floor(j / 2) % 2].push(f); });
 
-        var strip = document.createElement('div');
-        strip.className = 'gstrip';
-        strip.appendChild(baseCols[0]);
         gMosaic.innerHTML = '';
-        gMosaic.appendChild(strip);
-        // Measure one real column (width comes from CSS, which is responsive).
-        var colW = baseCols[0].getBoundingClientRect().width;
-        var gap = parseFloat(getComputedStyle(strip).columnGap) || 0;
-        var step = colW + gap;
-        strip.innerHTML = '';
+        var mosaicW = gMosaic.getBoundingClientRect().width;
 
-        // Repeat the set until it is wider than the screen. Without this, a
-        // strip narrower than the viewport would show a gap at the wrap.
-        var repeats = Math.max(1, Math.ceil((gMosaic.getBoundingClientRect().width * 1.15) / (cols * step)));
-        for (var r = 0; r < repeats; r++) {
-          baseCols.forEach(function (col) {
-            strip.appendChild(r === 0 ? col : col.cloneNode(true));
-          });
-        }
+        rowsFrames.forEach(function (frames, r) {
+          if (!frames.length) return;
 
-        // Clone the whole strip once. The two halves are identical, and the CSS
-        // slides the track by exactly 50% (= one copy), so the wrap is seamless
-        // WITHOUT any measured pixel distance — that measurement came out a few
-        // px off on iOS and made the wall overshoot into empty space.
-        var track = document.createElement('div');
-        track.className = 'gtrack';
-        track.appendChild(strip);
-        track.appendChild(strip.cloneNode(true));
-        gMosaic.innerHTML = '';
-        gMosaic.appendChild(track);
+          // One sequence = this row's photos, repeated until wider than the
+          // screen (otherwise the wrap would expose empty space).
+          var seq = document.createElement('div');
+          seq.className = 'gseq';
+          frames.forEach(function (f) { seq.appendChild(f); });
 
-        if (!reduce) {
-          // Only the DURATION uses a measured width (one copy). If it is a touch
-          // off, the wall is merely a hair faster/slower — the loop stays
-          // seamless because the distance is the CSS -50%, not this number.
-          var oneCopyWidth = track.getBoundingClientRect().width / 2;
-          track.style.animationDuration = (oneCopyWidth / SPEED) + 's';
-          track.classList.add('is-sliding');
-        }
+          var row = document.createElement('div');
+          row.className = 'grow';
+          row.appendChild(seq);
+          gMosaic.appendChild(row);
+
+          var guard = 0;
+          while (seq.getBoundingClientRect().width < mosaicW * 1.15 && guard < 4) {
+            frames.forEach(function (f) { seq.appendChild(f.cloneNode(true)); });
+            guard++;
+          }
+
+          // Second identical copy -> -50% slides exactly one copy.
+          row.appendChild(seq.cloneNode(true));
+
+          if (!reduce) {
+            var oneCopyWidth = row.getBoundingClientRect().width / 2;
+            row.style.animationDuration = (oneCopyWidth / SPEED) + 's';
+            row.classList.add('is-sliding');
+          }
+        });
       };
 
       build();
@@ -134,10 +129,6 @@
           // changing only the HEIGHT) — rebuild only when the width changed.
           if (window.innerWidth === lastBuildWidth) return;
           lastBuildWidth = window.innerWidth;
-          // Put the original frames back in a flat list, then rebuild for the
-          // new width (column width is responsive).
-          gMosaic.innerHTML = '';
-          allFrames.forEach(function (f) { gMosaic.appendChild(f); });
           build();
         }, 200);
       });

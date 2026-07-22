@@ -1,10 +1,8 @@
 <?php
-// gtest.php — TEMPORARY on-device diagnostic for the sliding gallery loop.
-// Mirrors the PRODUCTION build (translateX(-50%) + width:max-content) and
-// monitors, over time, the worst empty gap ever shown at either edge — so a
-// single screenshot proves whether the loop ever exposes beige (a broken
-// wrap) on THIS device. ?fast=1 runs a 3s cycle to see many wraps quickly.
-// DELETE AFTER USE.
+// gtest.php — on-device diagnostic for the 2-ROW sliding gallery loop.
+// Replicates the production construction and monitors, over time, the worst
+// empty gap ever shown at either edge of each row — one screenshot proves
+// whether the loop ever breaks on THIS device. ?fast=1 = 3s cycles.
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Pragma: no-cache');
 require_once __DIR__ . '/sys/db_connect.php';
@@ -24,21 +22,24 @@ $fast = (($_GET['fast'] ?? '') === '1');
 <title>loop test</title>
 <style>
 body { margin: 0; background: #EADECB; font-family: -apple-system, sans-serif; }
-#hud { position: sticky; top: 0; z-index: 99; background: #111; color: #fff; padding: 12px; font-size: 17px; line-height: 1.5; }
+#hud { position: sticky; top: 0; z-index: 99; background: #111; color: #fff; padding: 12px; font-size: 16px; line-height: 1.5; }
 #hud .bad { color: #ff5f56; font-weight: 700; }
 #hud .ok { color: #27c93f; font-weight: 700; }
 .gallery-mosaic { position: relative; width: 100%; overflow: hidden; contain: paint; }
-.gtrack { display: flex; width: max-content; }
-.gtrack.is-sliding { animation: gslide linear infinite; }
+.grow { display: flex; width: max-content; }
+.grow + .grow { margin-top: .85rem; }
+.grow.is-sliding { animation: gslide linear infinite; }
 @keyframes gslide { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-.gstrip { display: flex; flex: 0 0 auto; min-width: 0; gap: .85rem; align-items: flex-start; padding-right: .85rem; }
-/* min-width:0 is THE fix under test: without it, WebKit lets each image's
-   natural width (700px thumbnails) inflate its 165px column once loaded. */
-.gcol { flex: 0 0 165px; min-width: 0; max-width: 165px; display: flex; flex-direction: column; gap: .85rem; }
-.gframe { display: block; width: 100%; margin: 0; padding: 0; border: 0; background: #efe7d7; border-radius: 12px; overflow: hidden; line-height: 0; }
-.gframe.landscape { aspect-ratio: 3 / 2; }
-.gframe.portrait  { aspect-ratio: 3 / 4; }
+.gseq { display: flex; flex: 0 0 auto; gap: .85rem; padding-right: .85rem; }
+.gframe { display: block; flex: 0 0 auto; min-width: 0; margin: 0; padding: 0; border: 0; background: #efe7d7; border-radius: 12px; overflow: hidden; line-height: 0; height: 260px; }
+.gframe.landscape { width: 390px; max-width: 390px; }
+.gframe.portrait  { width: 195px; max-width: 195px; }
 .gframe img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@media (max-width: 899px) {
+  .gframe { height: 160px; }
+  .gframe.landscape { width: 240px; max-width: 240px; }
+  .gframe.portrait  { width: 120px; max-width: 120px; }
+}
 </style>
 </head>
 <body>
@@ -59,68 +60,64 @@ body { margin: 0; background: #EADECB; font-family: -apple-system, sans-serif; }
   var allFrames = Array.prototype.slice.call(m.querySelectorAll('.gframe'));
   var land = allFrames.filter(function(f){ return f.dataset.orient !== 'port'; });
   var port = allFrames.filter(function(f){ return f.dataset.orient === 'port'; });
+  var zipped = [];
+  var n = Math.max(land.length, port.length);
+  for (var i = 0; i < n; i++) { if (land[i]) zipped.push(land[i]); if (port[i]) zipped.push(port[i]); }
+  var rowsFrames = [[], []];
+  zipped.forEach(function (f, j) { rowsFrames[Math.floor(j / 2) % 2].push(f); });
 
-  var cols = Math.min(Math.floor(land.length/2), Math.floor(port.length/2));
-  var baseCols = [];
-  for (var c = 0; c < cols; c++) {
-    var col = document.createElement('div'); col.className = 'gcol';
-    var cl = land.slice(c*2, c*2+2), cp = port.slice(c*2, c*2+2);
-    var order = (c%2===0) ? [cl[0],cp[0],cl[1],cp[1]] : [cp[0],cl[0],cp[1],cl[1]];
-    order.forEach(function(f){ if (f) col.appendChild(f); });
-    baseCols.push(col);
-  }
-  var strip = document.createElement('div'); strip.className = 'gstrip';
-  strip.appendChild(baseCols[0]); m.innerHTML=''; m.appendChild(strip);
-  var colW = baseCols[0].getBoundingClientRect().width;
-  var gap = parseFloat(getComputedStyle(strip).columnGap) || 0;
-  var step = colW + gap; strip.innerHTML='';
-  // Capture what THIS engine believed the widths were at build time — this is
-  // the number that decides `repeats`, so if it is inflated we see it here.
-  var mosaicWAtBuild = m.getBoundingClientRect().width;
-  var repeats = Math.max(1, Math.ceil((mosaicWAtBuild*1.15)/(cols*step)));
-  var buildInfo = 'AT BUILD: mosaicW=' + Math.round(mosaicWAtBuild)
-    + ' innerW=' + window.innerWidth
-    + ' clientW=' + document.documentElement.clientWidth
-    + ' repeats=' + repeats;
-  for (var r=0; r<repeats; r++) baseCols.forEach(function(col){ strip.appendChild(r===0?col:col.cloneNode(true)); });
-  var track = document.createElement('div'); track.className='gtrack';
-  track.appendChild(strip); track.appendChild(strip.cloneNode(true));
-  m.innerHTML=''; m.appendChild(track);
-  var dur = FAST ? 3 : (track.getBoundingClientRect().width/2)/60;
-  track.style.animationDuration = dur + 's';
-  track.classList.add('is-sliding');
+  m.innerHTML = '';
+  var mosaicW = m.getBoundingClientRect().width;
+  var buildInfo = 'AT BUILD: mosaicW=' + Math.round(mosaicW) + ' innerW=' + window.innerWidth;
+  var rows = [], seqWAtBuild = [];
+  rowsFrames.forEach(function (frames, r) {
+    var seq = document.createElement('div'); seq.className = 'gseq';
+    frames.forEach(function (f) { seq.appendChild(f); });
+    var row = document.createElement('div'); row.className = 'grow';
+    row.appendChild(seq); m.appendChild(row);
+    var guard = 0;
+    while (seq.getBoundingClientRect().width < mosaicW * 1.15 && guard < 4) {
+      frames.forEach(function (f) { seq.appendChild(f.cloneNode(true)); });
+      guard++;
+    }
+    seqWAtBuild.push(Math.round(seq.getBoundingClientRect().width));
+    row.appendChild(seq.cloneNode(true));
+    var dur = FAST ? 3 : (row.getBoundingClientRect().width / 2) / 60;
+    row.style.animationDuration = dur + 's';
+    row.classList.add('is-sliding');
+    rows.push(row);
+  });
+  buildInfo += ' seq0=' + seqWAtBuild[0] + ' seq1=' + seqWAtBuild[1];
 
   var worstGap = 0, samples = 0, deepestTx = 0;
   var startedAt = Date.now();
   function measure() {
-    // Warm-up: Safari animates new tabs into place, which garbles early rect
-    // reads. Judge only steady-state.
+    // Warm-up: Safari animates new tabs into place, garbling early rects.
     if (Date.now() - startedAt < 2500) { return; }
     var W = m.getBoundingClientRect().width;
-    var tr = track.getBoundingClientRect();
-    // the ACTUAL animated offset right now, straight from the engine
-    var tx = 0;
-    try {
-      var mtx = getComputedStyle(track).transform;
-      if (mtx && mtx !== 'none') tx = (new DOMMatrixReadOnly(mtx)).e;
-    } catch (e) {}
-    if (tx < deepestTx) deepestTx = tx;
-    var gapRight = W - tr.right;
-    var gapLeft  = tr.left;
-    var g = Math.max(gapRight, gapLeft, 0);
-    if (g > worstGap) worstGap = g;
+    var nowW = [];
+    rows.forEach(function (row) {
+      var tr = row.getBoundingClientRect();
+      nowW.push(Math.round(tr.width / 2));
+      var tx = 0;
+      try {
+        var mtx = getComputedStyle(row).transform;
+        if (mtx && mtx !== 'none') tx = (new DOMMatrixReadOnly(mtx)).e;
+      } catch (e) {}
+      if (tx < deepestTx) deepestTx = tx;
+      var g = Math.max(W - tr.right, tr.left, 0);
+      if (g > worstGap) worstGap = g;
+    });
     samples++;
     var tag = worstGap > 2
       ? '<span class="bad">BROKEN — beige gap up to ' + Math.round(worstGap) + 'px</span>'
       : '<span class="ok">SEAMLESS — no gap ever</span>';
     document.getElementById('hud').innerHTML =
       tag + '<br>' + buildInfo +
-      '<br>NOW: track=' + Math.round(tr.width) + ' strip0=' + Math.round(track.children[0].getBoundingClientRect().width) +
-      ' vw=' + Math.round(W) + ' innerW=' + window.innerWidth +
-      '<br>deepest translateX=' + Math.round(deepestTx) + 'px (expected max -' + Math.round(tr.width/2) + ') samples=' + samples;
+      '<br>NOW: seq0=' + nowW[0] + ' seq1=' + nowW[1] + ' vw=' + Math.round(W) +
+      ' deepestTx=' + Math.round(deepestTx) + ' samples=' + samples;
   }
   setInterval(measure, 200);
-  measure();
 })();
 </script>
 </body>

@@ -427,16 +427,16 @@ section[id] { scroll-margin-top: 5rem; }
 }
 .gallery-mosaic::before { left: 0;  background: linear-gradient(to right, #EADECB, rgba(234, 222, 203, 0)); }
 .gallery-mosaic::after  { right: 0; background: linear-gradient(to left,  #EADECB, rgba(234, 222, 203, 0)); }
-/* .gtrack holds two identical .gstrip copies and slides by exactly 50%, which
-   is ALWAYS exactly one copy — so the loop is seamless with no measured pixel
-   distance to get wrong. That matters: a JS-measured distance came out a few
-   px off on iOS, so the slide overshot the last photo and showed empty space
-   at the wrap (the wall "didn't link back to the start"). width:max-content
-   makes the track size to its content (both copies), so -50% resolves to one
-   copy exactly. No will-change: the running animation promotes the layer by
-   itself, and a permanent hint forces iOS to keep a huge GPU buffer. */
-.gtrack { display: flex; width: max-content; }
-.gtrack.is-sliding { animation: gslide linear infinite; }
+/* TWO ROWS. Each .grow is one row: an animated track holding two identical
+   .gseq copies; the CSS slides it by exactly -50% (= one copy), so the loop
+   is seamless BY CONSTRUCTION — no measured pixel distance to get wrong
+   (a JS-measured distance is what used to overshoot on iOS and show the end
+   of the wall). width:max-content sizes the row to its content, so -50%
+   resolves to exactly one copy. No will-change: the running animation
+   promotes the layer by itself. */
+.grow { display: flex; width: max-content; }
+.grow + .grow { margin-top: .85rem; }
+.grow.is-sliding { animation: gslide linear infinite; }
 @keyframes gslide {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
@@ -446,39 +446,37 @@ section[id] { scroll-margin-top: 5rem; }
    the slide indefinitely and looked like the loop had "ended". @media
    (hover: hover) keeps the pause on desktop and never applies it on touch. */
 @media (hover: hover) and (pointer: fine) {
-  .gallery-mosaic:hover .gtrack.is-sliding { animation-play-state: paused; }
+  .gallery-mosaic:hover .grow.is-sliding { animation-play-state: paused; }
 }
 
-/* flex: 0 0 auto is THE critical line: the two strip copies are flex items of
-   .gtrack, and without it Safari SHRINKS each strip box to the track's width
-   while the rigid fixed-width columns inside overflow it — so the second
-   strip's columns landed on top of the first's ("scrambled wall" on iPhone).
-   Chrome sizes the strips by their content, which hid the bug in testing. */
-.gstrip { display: flex; flex: 0 0 auto; gap: .85rem; align-items: flex-start; padding-right: .85rem; }
-/* min-width:0 + max-width are CRITICAL: a flex item's default min-width:auto
-   floors it at its content's natural size, and WebKit counts the photos'
-   intrinsic width (700px thumbnails) — so once images loaded, every 300/165px
-   column silently ballooned to ~700px. The wall then outgrew every slide
-   distance and the loop ran off the end into empty space (iPhone bug).
-   Chrome doesn't inflate, which is why this only broke on Safari. */
-.gcol { flex: 0 0 300px; min-width: 0; max-width: 300px; display: flex; flex-direction: column; gap: .85rem; }
+/* flex: 0 0 auto stops Safari shrinking the sequence copies to the row's
+   width (that shrink is what once scrambled the wall on iPhone). */
+.gseq { display: flex; flex: 0 0 auto; gap: .85rem; padding-right: .85rem; }
+/* EVERY frame size is EXPLICIT: height per row, width per orientation, capped
+   with min-width:0 + max-width. This is the hard-won iOS invariant: flex's
+   default min-width:auto lets WebKit floor a frame at the PHOTO's intrinsic
+   width (700px thumbnails) once it loads — frames ballooned, the wall outgrew
+   its slide distance, and the loop ran off the end into empty space (Chrome
+   never inflates, which hid it). Fixed sizes mean nothing that loads can ever
+   change the wall's geometry. */
 .gframe {
-  display: block; width: 100%; margin: 0; padding: 0;
+  display: block; flex: 0 0 auto; min-width: 0; margin: 0; padding: 0;
   border: 0; background: #efe7d7; border-radius: 12px; overflow: hidden;
   cursor: pointer; line-height: 0; position: relative;
+  height: 260px;
   transition: box-shadow .35s ease;
 }
-.gframe.landscape { aspect-ratio: 3 / 2; }
-.gframe.portrait  { aspect-ratio: 3 / 4; }
+.gframe.landscape { width: 390px; max-width: 390px; }  /* 3:2 at 260 tall */
+.gframe.portrait  { width: 195px; max-width: 195px; }  /* 3:4 at 260 tall */
 /* No zoom/transform on the photo. A scaled photo overflows its frame, and
    Safari does NOT clip a transformed child inside a rounded, overflow-hidden
-   box — on iOS every photo bled over its neighbours and the gaps vanished.
-   The wall already slides, so the zoom was redundant motion anyway (and it
-   put ~80 animating layers on the phone's GPU). */
+   box — on iOS every photo bled over its neighbours and the gaps vanished. */
 .gframe img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .gframe:hover { box-shadow: 0 10px 26px -8px rgba(0,0,0,.45); }
 @media (max-width: 899px) {
-  .gcol { flex: 0 0 165px; max-width: 165px; }
+  .gframe { height: 160px; }
+  .gframe.landscape { width: 240px; max-width: 240px; }
+  .gframe.portrait  { width: 120px; max-width: 120px; }
 }
 
 /* ---------- Footer partner-site logos (compact single line) ---------- */
@@ -632,7 +630,7 @@ a.contact-detail:hover {
 @media (prefers-reduced-motion: reduce) {
   .hero-bg { animation: none; }
   .band-bg { background-attachment: scroll; }
-  .gtrack, .gtrack.is-sliding { animation: none; }
+  .grow, .grow.is-sliding { animation: none; }
   * { scroll-behavior: auto !important; }
 }
 

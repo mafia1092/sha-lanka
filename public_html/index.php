@@ -235,7 +235,7 @@ function card($slug, $field, $fallback = '') {
         $shape = $o === 'port' ? 'portrait' : 'landscape';
         foreach ($gallery[$o] as $i => $base):
           // First few of each orientation load eagerly (they fill the first
-          // couple of columns); the rest arrive as they slide into view.
+          // screenful of both rows); the rest arrive as they slide into view.
           $lazy = $i < 4 ? '' : ' loading="lazy"';
       ?>
       <button class="gframe <?= $shape ?>" data-orient="<?= $o ?>" data-base="<?= h($base) ?>" type="button" aria-label="View photo full size"><img src="assets/img/gallery/<?= h($base) ?>.jpg" alt="Sha Lanka Travels gallery photo"<?= $lazy ?> /></button>

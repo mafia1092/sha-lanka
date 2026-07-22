@@ -51,16 +51,19 @@ cd public_html && for f in $(find . -name '*.php' -not -path './mail/*'); do php
   `-lg` ≤1600w q80), service slides (≤1600w q80), homepage hero (≤1920w q82,
   filename in `settings.hero_image`, uploaded via Admin → Content). GD cannot
   decode iPhone HEIC — the admin rejects it with a message; export as JPEG first.
-- **Gallery mosaic needs ≥8 active photos per orientation** (land/port);
-  the admin blocks deletes/deactivations that would break that.
-- **Gallery = full-bleed wall sliding sideways forever** (sits under About).
-  `index.php` renders every active photo flat; `main.js` builds columns of
-  2 land + 2 port (equal height → flat top/bottom), repeats them until wider
-  than the screen, then clones the strip and slides it by exactly one strip
-  width so the loop is seamless. Speed is `SPEED` px/sec in `main.js`, not a
-  fixed duration. `.gallery-mosaic` needs `contain: paint` (correct clipping
-  of the over-wide strip). Photos beyond a whole column aren't shown — with
-  24 land / 21 port that's 10 columns / 40 photos.
+- **Gallery = TWO full-bleed rows sliding sideways forever** (sits under
+  About). `index.php` renders every active photo flat; `main.js` zips
+  land/port and deals them into 2 rows in pairs (mixed shapes per row),
+  repeats each row until wider than the screen, then duplicates it — the CSS
+  slides each row by exactly `-50%` (= one copy), so the loop is seamless BY
+  CONSTRUCTION (never reintroduce JS-measured pixel distances). Row height
+  is fixed (260px / 160px mobile); frame widths are explicit per orientation
+  (390/195, 240/120) with `min-width:0` + `max-width` — WITHOUT that cap,
+  WebKit inflates frames to the photos' intrinsic 700px width once loaded
+  and the loop runs off the end (the great iPhone bug of 2026-07).
+  ALL active photos are shown; speed is `SPEED` px/sec in `main.js`.
+  `.gallery-mosaic` needs `contain: paint`. The admin's ≥8-per-orientation
+  guard is now just a sensible minimum, not a layout requirement.
 - Do not re-introduce `new Image().onload` preloading in the gallery
   (cached images never fire onload → animation freezes). The old per-photo
   swap animation was removed — the slide replaces it.
