@@ -414,8 +414,9 @@ section[id] { scroll-margin-top: 5rem; }
      painting for the always-running slide). */
   contain: paint;
 }
-/* Edge fade: gradients from the section background colour (#EADECB =
-   bg-sand/40 flattened over the cream body) painted OVER the photo wall. */
+/* Edge fade: dark vignette gradients painted OVER the photo wall, so photos
+   dim into near-black as they slide off either edge (espresso #1C1A17 tone
+   to stay in the palette). */
 .gallery-mosaic::before,
 .gallery-mosaic::after {
   content: "";
@@ -425,8 +426,8 @@ section[id] { scroll-margin-top: 5rem; }
   z-index: 1;
   pointer-events: none;
 }
-.gallery-mosaic::before { left: 0;  background: linear-gradient(to right, #EADECB, rgba(234, 222, 203, 0)); }
-.gallery-mosaic::after  { right: 0; background: linear-gradient(to left,  #EADECB, rgba(234, 222, 203, 0)); }
+.gallery-mosaic::before { left: 0;  background: linear-gradient(to right, rgba(28, 26, 23, .85), rgba(28, 26, 23, 0)); }
+.gallery-mosaic::after  { right: 0; background: linear-gradient(to left,  rgba(28, 26, 23, .85), rgba(28, 26, 23, 0)); }
 /* Before main.js builds the rows, the mosaic holds every photo as a flat
    vertical list ~11,000px tall — that momentarily giant page made AOS compute
    scroll-reveal positions thousands of px too low, so every section BELOW the
