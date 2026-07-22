@@ -427,6 +427,14 @@ section[id] { scroll-margin-top: 5rem; }
 }
 .gallery-mosaic::before { left: 0;  background: linear-gradient(to right, #EADECB, rgba(234, 222, 203, 0)); }
 .gallery-mosaic::after  { right: 0; background: linear-gradient(to left,  #EADECB, rgba(234, 222, 203, 0)); }
+/* Before main.js builds the rows, the mosaic holds every photo as a flat
+   vertical list ~11,000px tall — that momentarily giant page made AOS compute
+   scroll-reveal positions thousands of px too low, so every section BELOW the
+   gallery stayed invisible (opacity 0) after the gallery collapsed to its
+   real height. Hiding the unbuilt flat frames keeps the page height stable:
+   built frames live inside .gseq, so this only targets the flat state. */
+.gallery-mosaic > .gframe { display: none; }
+
 /* TWO ROWS. Each .grow is one row: an animated track holding two identical
    .gseq copies; the CSS slides it by exactly -50% (= one copy), so the loop
    is seamless BY CONSTRUCTION — no measured pixel distance to get wrong

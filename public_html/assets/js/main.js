@@ -118,6 +118,12 @@
             row.classList.add('is-sliding');
           }
         });
+
+        // The build changes the page height, so AOS must recompute its
+        // scroll-reveal trigger positions — otherwise sections below the
+        // gallery can end up with triggers past the page bottom and never
+        // appear (the "everything after the gallery is missing" bug).
+        if (window.AOS && AOS.refresh) AOS.refresh();
       };
 
       build();
